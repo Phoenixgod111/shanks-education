@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+.cache/
+
+# Environment
+.env
+.env.local

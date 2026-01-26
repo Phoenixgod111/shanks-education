@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Образовательное приложение</title>
+    <meta name="theme-color" content="#1976d2">
+
+    <!-- Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Custom CSS - Apple Style -->
+    <link rel="stylesheet" href="css/styles-apple.css?v=2.0">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading" class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Загрузка...</p>
+        </div>
+
+        <!-- Main App -->
+        <div id="main-app" class="hidden">
+
+            <!-- Navigation -->
+            <nav class="bottom-nav">
+                <button class="nav-item active" data-screen="home">
+                    <i class="material-icons">home</i>
+                    <span>Главная</span>
+                </button>
+                <button class="nav-item" data-screen="subjects">
+                    <div class="nav-icon-wrapper">
+                        <i class="material-icons">school</i>
+                    </div>
+                    <span>Предметы</span>
+                </button>
+                <button class="nav-item" data-screen="notes">
+                    <div class="nav-icon-wrapper">
+                        <i class="material-icons">psychology</i>
+                    </div>
+                    <span>Заметки AI</span>
+                </button>
+                <button class="nav-item" data-screen="profile">
+                    <div class="nav-icon-wrapper">
+                        <i class="material-icons">person</i>
+                    </div>
+                    <span>Профиль</span>
+                </button>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Home Screen -->
+                <div id="home-screen" class="screen active">
+                    <!-- Progress Block -->
+                    <div class="card progress-block">
+                        <div class="card-header featured-header">
+                            <div class="challenge-icon progress-icon">
+                                <i class="material-icons">analytics</i>
+                            </div>
+                            <div class="challenge-info">
+                                <h2>Мой прогресс</h2>
+                                <div class="progress-summary">
+                                    <span class="progress-percentage">15%</span>
+                                    <span class="progress-label">завершено</span>
+                                    <button class="progress-help-btn" onclick="app.showProgressExplanation()" title="Что означает этот процент?">
+                                        <i class="material-icons">help_outline</i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress-items">
+                            <div class="progress-item">
+                                <span class="progress-subject">Математика</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 18%"></div>
+                                    <span class="progress-text">18%</span>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <span class="progress-subject">Русский язык</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <span class="progress-subject">История</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <span class="progress-subject">Физика</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <span class="progress-subject">Английский</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 0%"></div>
+                                    <span class="progress-text">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Challenge -->
+                    <div class="card daily-challenge featured">
+                        <div class="card-header featured-header">
+                            <div class="challenge-icon">
+                                <i class="material-icons">local_fire_department</i>
+                            </div>
+                            <div class="challenge-info">
+                                <h2>Задача дня 🔥</h2>
+                                <p class="challenge-reward">+50 баллов</p>
+                            </div>
+                            <div class="challenge-timer">
+                                <i class="material-icons">schedule</i>
+                                <span>23:45</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p class="challenge-description">Решите математическую задачу повышенной сложности и получите дополнительные бонусы!</p>
+                            <div class="challenge-meta">
+                                <span class="difficulty hard">Сложная</span>
+                                <span class="subject-tag">Математика</span>
+                            </div>
+                            <button class="btn btn-primary btn-large" id="start-challenge">
+                                <i class="material-icons">play_arrow</i>
+                                Начать челлендж
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QUIZ Block -->
+                    <div class="card quiz-challenge">
+                        <div class="card-header featured-header">
+                            <div class="challenge-icon quiz-icon">
+                                <i class="material-icons">school</i>
+                            </div>
+                            <div class="challenge-info">
+                                <h2>QUIZ</h2>
+                                <p class="challenge-reward">Интерактивное обучение</p>
+                            </div>
+                            <div class="challenge-timer quiz-timer">
+                                <i class="material-icons">lightbulb</i>
+                                <span>∞</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p class="challenge-description">Проверь свои знания! Реши интерактивные задачи с вариантами ответов и закрепи изученный материал.</p>
+                            <div class="challenge-meta">
+                                <span class="difficulty easy">Легко начать</span>
+                                <span class="subject-tag">Все предметы</span>
+                            </div>
+                            <button class="btn btn-primary btn-large" id="start-quiz">
+                                <i class="material-icons">play_circle_filled</i>
+                                Начать QUIZ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subjects Screen -->
+                <div id="subjects-screen" class="screen">
+                    <!-- Hero Section with Class Selection -->
+                    <div class="hero-section">
+                        <div class="hero-content">
+                            <div class="hero-icon">
+                                <i class="material-icons">school</i>
+                            </div>
+                            <h1 class="hero-title">Выбери свой класс</h1>
+                            <p class="hero-subtitle">Давай подберем предметы для твоего уровня обучения</p>
+
+                            <div class="grade-selector">
+                                <div class="grade-buttons" id="grade-buttons">
+                                    <!-- Grade buttons will be generated here -->
+                                </div>
+                            </div>
+
+                            <div class="hero-tip" id="hero-tip">
+                                <i class="material-icons">lightbulb</i>
+                                <span>Выбери класс → увидишь все предметы</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subjects Section -->
+                    <div class="subjects-section" id="subjects-section" style="display: none;">
+                        <div class="section-header">
+                            <h2 class="section-title">
+                                <span id="current-grade-display">Предметы</span>
+                                <button class="change-grade-btn" id="change-grade-btn" title="Изменить класс">
+                                    <i class="material-icons">edit</i>
+                                </button>
+                            </h2>
+                            <p class="section-subtitle">Отмечай сердечком предметы для отслеживания прогресса</p>
+                        </div>
+
+                        <div class="favorites-section" id="favorites-section" style="display: none;">
+                            <h3 class="favorites-title">
+                                <i class="material-icons">favorite</i>
+                                Избранные предметы
+                            </h3>
+                            <div class="favorites-grid" id="favorites-grid">
+                                <!-- Favorite subjects will be shown here -->
+                            </div>
+                        </div>
+
+                        <div class="all-subjects-section">
+                            <h3 class="all-subjects-title">
+                                <i class="material-icons">library_books</i>
+                                Все предметы <span id="grade-number"></span> класса
+                            </h3>
+                            <div class="subjects-list" id="subjects-container-subjects">
+                                <!-- All subjects will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Screen -->
+                <div id="notes-screen" class="screen">
+                    <div class="coming-soon">
+                        <i class="material-icons large-icon">psychology</i>
+                        <h2>AI Заметки</h2>
+                        <p>Умные заметки с помощью ИИ скоро будут доступны</p>
+                    </div>
+                </div>
+
+                <!-- Profile Screen -->
+                <div id="profile-screen" class="screen">
+                    <div class="profile-header">
+                        <div class="profile-avatar">
+                            <i class="material-icons">person</i>
+                        </div>
+                        <h2>Мой профиль</h2>
+                    </div>
+
+                    <!-- Premium Section -->
+                    <div class="card premium-section" id="premium-section">
+                        <div class="card-header">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #FF6B9D 0%, #4ECDC4 100%); display: flex; align-items: center; justify-content: center;">
+                                    <i class="material-icons" style="font-size: 24px; color: white;">workspace_premium</i>
+                                </div>
+                                <div>
+                                    <h3 style="margin: 0; font-size: 18px;">Premium доступ</h3>
+                                    <p style="margin: 0; font-size: 14px; color: #666;" id="premium-subtitle">Разблокируй все возможности</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div id="premium-locked-state" style="display: block;">
+                                <p style="color: #666; margin-bottom: 16px; line-height: 1.5;">
+                                    Получи доступ к сложным задачам, AI-помощнику и другим премиум функциям
+                                </p>
+                                <button class="btn btn-primary btn-large" id="get-premium-btn" style="background: linear-gradient(135deg, #FF6B9D 0%, #4ECDC4 100%);">
+                                    <i class="material-icons">workspace_premium</i>
+                                    Получить Premium
+                                </button>
+                            </div>
+                            <div id="premium-active-state" style="display: none;">
+                                <div style="background: rgba(16, 185, 129, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <i class="material-icons" style="color: #10b981;">check_circle</i>
+                                        <strong style="color: #10b981;">Подписка активна</strong>
+                                    </div>
+                                    <p style="margin: 0; font-size: 14px; color: #666;" id="subscription-info">
+                                        <!-- Info will be inserted here -->
+                                    </p>
+                                </div>
+                                <button class="btn btn-secondary" id="manage-subscription-btn" style="width: 100%;">
+                                    Управление подпиской
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card stats-card">
+                        <div class="card-header">
+                            <h3>Статистика</h3>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-value">0</span>
+                                <span class="stat-name">Уроков</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-value">0</span>
+                                <span class="stat-name">Тестов</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-value">0</span>
+                                <span class="stat-name">Баллов</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-value">0</span>
+                                <span class="stat-name">Дней</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card achievements-preview">
+                        <div class="card-header">
+                            <h3>Последние достижения</h3>
+                        </div>
+                        <div class="achievements-list">
+                            <div class="achievement-item locked">
+                                <i class="material-icons">emoji_events</i>
+                                <span>Первый урок</span>
+                            </div>
+                            <div class="achievement-item locked">
+                                <i class="material-icons">school</i>
+                                <span>Отличник</span>
+                            </div>
+                            <div class="achievement-item locked">
+                                <i class="material-icons">local_fire_department</i>
+                                <span>Стрик 7 дней</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Grade Selection Modal -->
+    <div id="grade-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Выберите класс</h2>
+                <p>Выберите класс, предметы которого вы хотите изучать</p>
+            </div>
+            <div class="grade-selection-grid">
+                <button class="grade-select-btn" data-grade="5">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">child_care</i>
+                    </div>
+                    <div class="grade-select-number">5</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+                <button class="grade-select-btn" data-grade="6">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">groups</i>
+                    </div>
+                    <div class="grade-select-number">6</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+                <button class="grade-select-btn" data-grade="7">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">science</i>
+                    </div>
+                    <div class="grade-select-number">7</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+                <button class="grade-select-btn" data-grade="8">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">calculate</i>
+                    </div>
+                    <div class="grade-select-number">8</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+                <button class="grade-select-btn" data-grade="9">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">history_edu</i>
+                    </div>
+                    <div class="grade-select-number">9</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+                <button class="grade-select-btn" data-grade="10">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">menu_book</i>
+                    </div>
+                    <div class="grade-select-number">10</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+                <button class="grade-select-btn" data-grade="11">
+                    <div class="grade-select-icon">
+                        <i class="material-icons">workspace_premium</i>
+                    </div>
+                    <div class="grade-select-number">11</div>
+                    <div class="grade-select-label">класс</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <!-- ВАЖНО: subject-manager.js ДОЛЖЕН загружаться ДО app.js! -->
+    <script src="js/subscription-manager.js?v=1.5"></script>
+    <script src="js/data.js?v=1.5"></script>
+    <script src="js/subject-manager.js?v=1.6"></script>
+    <script src="js/content-generator.js?v=1.5"></script>
+    <script src="js/navigation.js?v=1.5"></script>
+    <script src="js/telegram-api.js?v=1.5"></script>
+    <script src="js/app.js?v=1.7"></script>
+</body>
+</html>

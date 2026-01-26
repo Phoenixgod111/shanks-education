@@ -1,0 +1,146 @@
+{
+  "grade": 8,
+  "subject": "Математика",
+  "topics": [
+    {
+      "id": "irrational-numbers-8",
+      "title": "Иррациональные числа",
+      "description": "Понятие иррационального числа. Десятичные приближения.",
+      "difficulty": "hard",
+      "estimatedTime": 50,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "square-roots-8",
+      "title": "Квадратные корни",
+      "description": "Арифметический квадратный корень. Свойства квадратных корней.",
+      "difficulty": "hard",
+      "estimatedTime": 65,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "real-numbers-system-8",
+      "title": "Множество действительных чисел",
+      "description": "Рациональные и иррациональные числа. Числовая ось.",
+      "difficulty": "medium",
+      "estimatedTime": 45,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "quadratic-equations-intro-8",
+      "title": "Квадратные уравнения",
+      "description": "Неполные квадратные уравнения. Формула корней.",
+      "difficulty": "hard",
+      "estimatedTime": 75,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "quadratic-equations-complete-8",
+      "title": "Решение полных квадратных уравнений",
+      "description": "Дискриминант. Теорема Виета. Разложение на множители.",
+      "difficulty": "hard",
+      "estimatedTime": 80,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "functions-properties-8",
+      "title": "Свойства функций",
+      "description": "Возрастание и убывание функций. Четность и нечетность.",
+      "difficulty": "medium",
+      "estimatedTime": 55,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "quadratic-function-8",
+      "title": "Квадратичная функция",
+      "description": "График квадратичной функции. Вершина параболы.",
+      "difficulty": "hard",
+      "estimatedTime": 70,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "systems-equations-8",
+      "title": "Системы уравнений",
+      "description": "Метод подстановки и метод сложения для решения систем.",
+      "difficulty": "hard",
+      "estimatedTime": 75,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "trigonometry-intro-8",
+      "title": "Тригонометрия острого угла",
+      "description": "Синус, косинус, тангенс острого угла. Основные тождества.",
+      "difficulty": "hard",
+      "estimatedTime": 70,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "trigonometry-right-triangle-8",
+      "title": "Тригонометрия прямоугольного треугольника",
+      "description": "Решение прямоугольных треугольников. Теорема Пифагора.",
+      "difficulty": "hard",
+      "estimatedTime": 65,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "geometry-pythagoras-8",
+      "title": "Теорема Пифагора",
+      "description": "Доказательство теоремы Пифагора. Обратная теорема.",
+      "difficulty": "medium",
+      "estimatedTime": 50,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "geometry-similarity-8",
+      "title": "Подобие треугольников",
+      "description": "Признаки подобия треугольников. Свойства подобных треугольников.",
+      "difficulty": "hard",
+      "estimatedTime": 60,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "geometry-vector-8",
+      "title": "Векторы на плоскости",
+      "description": "Сложение векторов. Умножение вектора на число.",
+      "difficulty": "medium",
+      "estimatedTime": 55,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    },
+    {
+      "id": "combinatorics-8",
+      "title": "Элементы комбинаторики",
+      "description": "Правило умножения. Перестановки. Сочетания.",
+      "difficulty": "hard",
+      "estimatedTime": 60,
+      "lessons": [],
+      "practice": [],
+      "quiz": {}
+    }
+  ]
+}
