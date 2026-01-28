@@ -3,6 +3,9 @@ name: 🚀 Deploy to Server
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - 'debug-*.txt'
+      - 'test-*.html'
   workflow_dispatch:
 
 jobs:
