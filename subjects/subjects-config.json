@@ -1,92 +1,11 @@
 {
   "subjects": [
     {
-      "id": "russian",
-      "name": "Русский язык",
-      "icon": "text_fields",
-      "color": "#4CAF50",
-      "grades": [5, 6, 7, 8, 9, 10, 11],
-      "description": "Изучение русского языка и литературы"
-    },
-    {
       "id": "math",
       "name": "Математика",
       "icon": "calculate",
-      "color": "#2196F3",
-      "grades": [5, 6, 7, 8, 9, 10, 11],
-      "description": "Алгебра, геометрия, тригонометрия"
-    },
-    {
-      "id": "literature",
-      "name": "Литература",
-      "icon": "menu_book",
-      "color": "#795548",
-      "grades": [5, 6, 7, 8, 9, 10, 11],
-      "description": "Русская и мировая литература"
-    },
-    {
-      "id": "english",
-      "name": "Английский язык",
-      "icon": "language",
-      "color": "#FF9800",
-      "grades": [5, 6, 7, 8, 9, 10, 11],
-      "description": "Изучение английского языка"
-    },
-    {
-      "id": "history",
-      "name": "История",
-      "icon": "history",
-      "color": "#9C27B0",
-      "grades": [5, 6, 7, 8, 9, 10, 11],
-      "description": "История России и мира"
-    },
-    {
-      "id": "physics",
-      "name": "Физика",
-      "icon": "flash_on",
-      "color": "#F44336",
-      "grades": [7, 8, 9, 10, 11],
-      "description": "Законы физики и их применение"
-    },
-    {
-      "id": "chemistry",
-      "name": "Химия",
-      "icon": "science",
-      "color": "#607D8B",
-      "grades": [8, 9, 10, 11],
-      "description": "Основы химии и химические реакции"
-    },
-    {
-      "id": "biology",
-      "name": "Биология",
-      "icon": "bug_report",
-      "color": "#8BC34A",
-      "grades": [6, 7, 8, 9, 10, 11],
-      "description": "Живые организмы и экосистемы"
-    },
-    {
-      "id": "geography",
-      "name": "География",
-      "icon": "terrain",
-      "color": "#00BCD4",
-      "grades": [6, 7, 8, 9, 10],
-      "description": "География Земли и ее особенности"
-    },
-    {
-      "id": "informatics",
-      "name": "Информатика",
-      "icon": "memory",
-      "color": "#3F51B5",
-      "grades": [5, 6, 7, 8, 9, 10, 11],
-      "description": "Компьютеры и программирование"
-    },
-    {
-      "id": "social-science",
-      "name": "Обществознание",
-      "icon": "people",
-      "color": "#FF5722",
-      "grades": [8, 9, 10, 11],
-      "description": "Общество и социальные науки"
+      "classes": [5, 6, 7, 8, 9],
+      "description": "Изучение математики в 5-9 классах. Включает арифметику, алгебру, геометрию, вероятность и статистику. Формирование математического стиля мышления, функциональной математической грамотности."
     }
   ]
 }
