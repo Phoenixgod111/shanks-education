@@ -1,0 +1,19 @@
+name: 🧪 Basic Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  basic-test:
+    name: Basic Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧪 Basic Test
+        run: |
+          echo "✅ GitHub Actions is working!"
+          echo "Current time: $(date)"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF"
+          echo "✅ Basic test completed successfully!"
