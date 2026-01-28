@@ -2,7 +2,7 @@ name: 🚀 Deploy to Server
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
     paths-ignore:
       - 'debug-*.txt'
       - 'test-*.html'
