@@ -1,0 +1,83 @@
+name: 🚀 Simple Deploy Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_only:
+        description: 'Run only basic connectivity test'
+        required: false
+        default: 'true'
+
+jobs:
+  test-connection:
+    name: Test SSH Connection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Basic SSH Test
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASS }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          timeout: 30s
+          script: |
+            echo "🔍 Basic SSH connectivity test..."
+            echo "📍 Server: ${{ secrets.SERVER_HOST }}"
+            echo "👤 User: ${{ secrets.SERVER_USER }}"
+            echo "🖥️  OS: $(uname -a)"
+            echo "📁 Current dir: $(pwd)"
+            echo "✅ SSH connection successful!"
+
+            echo ""
+            echo "📁 Checking project directory..."
+            if [ -d "/var/www/shanks-education" ]; then
+                echo "✅ Project directory exists"
+                ls -la /var/www/shanks-education/ | head -3
+            else
+                echo "❌ Project directory missing"
+                ls -la /var/www/
+            fi
+
+            echo ""
+            echo "🌐 Testing website..."
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost 2>/dev/null || echo "000")
+            echo "HTTP Response: $RESPONSE"
+
+  deploy-minimal:
+    name: Minimal Deploy
+    runs-on: ubuntu-latest
+    needs: test-connection
+    if: github.event.inputs.test_only != 'true'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Minimal Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASS }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          timeout: 45s
+          script: |
+            echo "🚀 Minimal deployment test..."
+
+            cd /var/www/shanks-education || exit 1
+            echo "✅ Changed to project directory"
+
+            # Простая проверка git
+            git status --porcelain || echo "Git status failed"
+
+            # Простая проверка nginx
+            sudo nginx -t || echo "Nginx config test failed"
+
+            echo "✅ Minimal deploy completed"
