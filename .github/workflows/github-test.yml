@@ -1,0 +1,22 @@
+name: 🧪 GitHub Actions Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  github-test:
+    name: GitHub Actions Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧪 GitHub Actions Test
+        run: |
+          echo "🧪 TESTING GITHUB ACTIONS..."
+          echo "✅ Workflow started successfully"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF"
+          echo "SHA: $GITHUB_SHA"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Time: $(date)"
+          echo "✅ GitHub Actions is working perfectly!"
+          exit 0

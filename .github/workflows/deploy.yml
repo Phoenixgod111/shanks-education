@@ -1,12 +1,12 @@
 name: 🚀 Deploy to Server
 
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - 'debug-*.txt'
-      - 'test-*.html'
   workflow_dispatch:
+    inputs:
+      confirm_deploy:
+        description: 'Type "yes" to confirm deployment'
+        required: true
+        default: 'no'
 
 jobs:
   deploy:
