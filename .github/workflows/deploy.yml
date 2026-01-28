@@ -1,102 +1,60 @@
-name: 🚀 Auto Deploy & Integrate
+name: 🚀 Deploy to Server
+
 on:
   push:
     branches: [ main, master ]
-    paths-ignore:
-      - 'README.md'
-      - 'trigger-deploy.txt'
   workflow_dispatch:
-    inputs:
-      run_integration:
-        description: 'Run data integration'
-        required: false
-        default: 'false'
-  workflow_dispatch:
-    inputs:
-      run_integration:
-        description: 'Run data integration'
-        required: false
-        default: 'false'
 
 jobs:
   deploy:
-    name: Deploy & Integrate
+    name: Deploy Shanks Education
     runs-on: ubuntu-latest
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Deploy & Auto-Integrate
-        uses: appleboy/ssh-action@v1.2.0
+      - name: 🚀 Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          password: ${{ secrets.PASS }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASS }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          timeout: 60s
+          timeout: 30s
           script: |
-            echo "🚀 Starting automated deployment..."
+            echo "🚀 Starting deployment of Shanks Education..."
 
             # Переходим в директорию проекта
             cd /var/www/shanks-education
 
-            # Сохраняем текущую версию
-            CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
+            # Проверяем git статус
+            echo "📊 Current git status:"
+            git status --porcelain
+            git log --oneline -5
 
-            # Обновляем код
+            # Обновляем код из GitHub
             echo "📥 Updating code from GitHub..."
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch origin
+            git reset --hard origin/master
             git clean -fd
 
-            # Проверяем изменения
-            NEW_COMMIT=$(git rev-parse HEAD)
-            if [ "$CURRENT_COMMIT" != "$NEW_COMMIT" ]; then
-                echo "📊 Code updated: $CURRENT_COMMIT → $NEW_COMMIT"
-
-                # Автоматическая интеграция данных
-                if [ -f "full_math_integration.sh" ]; then
-                    echo "🔧 Running full math integration..."
-                    bash full_math_integration.sh
-                fi
-
-                # Ищем и запускаем другие скрипты интеграции
-                if ls integration-scripts/*.sh 2>/dev/null; then
-                    echo "🔧 Running additional integration scripts..."
-                    for script in integration-scripts/*.sh; do
-                        if [ -x "$script" ]; then
-                            echo "Running $script..."
-                            bash "$script"
-                        fi
-                    done
-                fi
-
-                # Ищем новые .sh файлы в корне
-                find . -maxdepth 1 -name "*.sh" -executable | grep -v "full_math_integration.sh" | while read script; do
-                    echo "🔧 Running $script..."
-                    bash "$script"
-                done
-            else
-                echo "📊 No code changes detected"
-            fi
-
-            # Всегда устанавливаем права
-            echo "🔧 Setting permissions..."
+            # Устанавливаем правильные права
+            echo "🔧 Setting correct permissions..."
             sudo chown -R www-data:www-data /var/www/shanks-education
-            sudo chmod -R 755 subjects/ 2>/dev/null || true
 
-            # Проверяем nginx
-            echo "🔍 Checking nginx config..."
+            # Проверяем nginx конфигурацию
+            echo "🔍 Checking nginx configuration..."
             sudo nginx -t
 
-            # Перезапускаем
+            # Перезапускаем nginx для применения изменений
             echo "🔄 Reloading nginx..."
             sudo systemctl reload nginx
 
-            # Финальная проверка
+            # Финальная проверка сайта
             echo "🌐 Testing website..."
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost 2>/dev/null || echo "000")
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
             if [ "$RESPONSE" = "200" ]; then
                 echo "✅ Website is UP (HTTP $RESPONSE)"
             else
@@ -105,12 +63,5 @@ jobs:
             fi
 
             echo ""
-            echo "🎉 Auto-deployment completed successfully!"
-            echo "🌐 Site: http://${{ secrets.HOST }}"
-
-      - name: 📊 Deployment Report
-        if: always()
-        run: |
-          echo "🚀 Deployment finished at $(date)"
-          echo "📊 Status: ${{ job.status }}"
-          echo "🔗 Check: https://github.com/Phoenixgod111/shanks-education/actions"
+            echo "🎉 Deployment completed successfully!"
+            echo "🌐 Site available at: http://${{ secrets.SERVER_HOST }}"
