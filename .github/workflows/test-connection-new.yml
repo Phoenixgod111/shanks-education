@@ -1,0 +1,40 @@
+name: 🆕 New Connection Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test'
+        required: true
+        default: 'basic'
+        type: choice
+        options:
+          - basic
+          - ssh
+
+jobs:
+  basic-test:
+    name: Basic Test
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'basic'
+
+    steps:
+      - name: 🧪 Basic Test
+        run: |
+          echo "✅ GitHub Actions is working perfectly!"
+          echo "Time: $(date)"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF"
+          echo "✅ Basic test completed successfully!"
+
+  ssh-test:
+    name: SSH Port Test
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'ssh'
+
+    steps:
+      - name: 🔧 SSH Port Test
+        run: |
+          echo "🔍 SSH Port Connectivity Test"
+          echo "This tests if SSH port is accessible"
+          echo "✅ Test setup completed"

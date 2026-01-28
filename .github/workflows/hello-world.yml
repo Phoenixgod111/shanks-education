@@ -1,0 +1,18 @@
+name: 👋 Hello World Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hello:
+    name: Hello World
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 👋 Hello World
+        run: |
+          echo "👋 Hello World!"
+          echo "✅ GitHub Actions is working!"
+          echo "Time: $(date)"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "🎉 Test successful!"
