@@ -4511,6 +4511,148 @@ body {
     }
 
     .topic-number-minimal {
+}
+
+/* ===== ПРОСТОЙ ДИЗАЙН ТЕМ ===== */
+.topic-card-simple {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e1e5e9;
+}
+
+.topic-card-simple:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    border-color: #007aff;
+}
+
+.topic-card-simple:active {
+    transform: translateY(0);
+    transition-duration: 0.1s;
+}
+
+.topic-number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #007aff, #5856d6);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
+
+.topic-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.topic-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.topic-description {
+    font-size: 14px;
+    color: #86868b;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.topic-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.topic-time {
+    color: #007aff;
+    font-weight: 500;
+}
+
+.topic-difficulty {
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.topic-difficulty.easy {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34c759;
+}
+
+.topic-difficulty.medium {
+    background: rgba(255, 149, 0, 0.1);
+    color: #ff9500;
+}
+
+.topic-difficulty.hard {
+    background: rgba(255, 59, 48, 0.1);
+    color: #ff3b30;
+}
+
+.topic-arrow {
+    margin-left: 16px;
+    color: #c7c7cc;
+    transition: color 0.2s ease;
+}
+
+.topic-card-simple:hover .topic-arrow {
+    color: #007aff;
+}
+
+.topic-arrow i {
+    font-size: 20px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .topic-card-simple {
+        padding: 14px;
+        margin-bottom: 6px;
+    }
+
+    .topic-number {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+        margin-right: 12px;
+    }
+
+    .topic-title {
+        font-size: 15px;
+    }
+
+    .topic-description {
+        font-size: 13px;
+    }
+
+    .topic-meta {
+        font-size: 11px;
+        gap: 10px;
+    }
+}
         font-size: 13px;
         min-width: 18px;
     }

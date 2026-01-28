@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест тем математики</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+        <h1>Тест загрузки тем математики</h1>
+
+        <div id="test-results">
+            <div id="loading">Загрузка...</div>
+        </div>
+
+        <div id="topics-container" style="display: none;">
+            <h2>Загруженные темы:</h2>
+            <div id="topics-list"></div>
+        </div>
+    </div>
+
+    <script src="js/subject-manager.js"></script>
+    <script>
+        async function testTopics() {
+            try {
+                console.log('Начинаем тест загрузки тем...');
+
+                // Инициализируем subject manager
+                await window.subjectManager.init();
+                console.log('SubjectManager инициализирован');
+
+                // Загружаем темы для математики 5 класса
+                console.log('Загружаем темы математики 5 класса...');
+                await window.subjectManager.loadSubjectTopics('math', 5);
+
+                // Получаем темы
+                const topics = window.subjectManager.getTopicsForSubject('math', 5);
+                console.log('Полученные темы:', topics);
+
+                // Показываем результаты
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('topics-container').style.display = 'block';
+
+                const topicsList = document.getElementById('topics-list');
+
+                if (topics && topics.length > 0) {
+                    topicsList.innerHTML = topics.map((topic, index) => `
+                        <div class="topic-card-simple">
+                            <div class="topic-number">${index + 1}</div>
+                            <div class="topic-content">
+                                <h3 class="topic-title">${topic.title}</h3>
+                                <p class="topic-description">${topic.description || 'Нет описания'}</p>
+                                <div class="topic-meta">
+                                    <span class="topic-time">${topic.estimatedTime || 45} мин</span>
+                                    <span class="topic-difficulty ${topic.difficulty || 'medium'}">${getDifficultyText(topic.difficulty || 'medium')}</span>
+                                </div>
+                            </div>
+                            <div class="topic-arrow">
+                                <i class="material-icons">chevron_right</i>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    topicsList.innerHTML = '<p style="color: red;">Темы не найдены!</p>';
+                }
+
+            } catch (error) {
+                console.error('Ошибка при тестировании:', error);
+                document.getElementById('loading').innerHTML = `Ошибка: ${error.message}`;
+            }
+        }
+
+        function getDifficultyText(difficulty) {
+            const difficultyMap = {
+                'easy': 'Легко',
+                'medium': 'Средне',
+                'hard': 'Сложно'
+            };
+            return difficultyMap[difficulty] || 'Средне';
+        }
+
+        // Запускаем тест при загрузке страницы
+        window.addEventListener('load', testTopics);
+    </script>
+</body>
+</html>
