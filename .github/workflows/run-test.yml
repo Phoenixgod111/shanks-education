@@ -1,0 +1,19 @@
+name: 🏃‍♂️ Run Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-test:
+    name: Run Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏃‍♂️ Run Test
+        run: |
+          echo "🏃‍♂️ WORKFLOW STARTED SUCCESSFULLY!"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF"
+          echo "SHA: $GITHUB_SHA"
+          echo "Time: $(date)"
+          echo "✅ Test completed - GitHub Actions is working!"
