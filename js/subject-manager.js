@@ -1,4 +1,5 @@
 // Subject Manager Class - управление контентом предметов
+// Version: v=13.0
 console.log('🚀 SubjectManager.js loaded successfully!');
 
 class SubjectManager {
@@ -185,11 +186,15 @@ class SubjectManager {
     }
 
     async init() {
+        console.log('🔧 SubjectManager: Starting initialization...');
+
         // Загружаем конфигурацию предметов
         await this.loadSubjectsConfig();
 
-        // Загружаем контент для всех классов сразу
-        await this.loadAllSubjectContent();
+        // ЗАПРЕЩЕНО загружать контент сразу - только по требованию (ленивая загрузка)
+        // await this.loadAllSubjectContent(); // СТРОГО ЗАКОММЕНТИРОВАНО!!!
+
+        console.log('✅ SubjectManager: Initialization completed - NO CONTENT LOADED');
     }
 
     async loadSubjectsConfig() {
@@ -206,15 +211,35 @@ class SubjectManager {
     }
 
     async loadSubjectContent(grade) {
+        console.log(`🔄 Loading subject content for grade: ${grade}`);
         this.currentGrade = grade;
 
         // Загружаем контент для каждого предмета доступного в этом классе
         if (this.subjectsConfig) {
+            const loadPromises = [];
             for (const subject of this.subjectsConfig) {
-                if (subject.grades.includes(grade)) {
-                    await this.loadSubjectTopics(subject.id, grade);
+                const availableGrades = subject.grades || subject.classes || [];
+                if (availableGrades.includes(grade)) {
+                    console.log(`📚 Loading topics for subject: ${subject.id}, grade: ${grade}`);
+                    // Добавляем timeout для каждой загрузки
+                    const loadPromise = Promise.race([
+                        this.loadSubjectTopics(subject.id, grade),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error(`Timeout loading ${subject.id} for grade ${grade}`)), 10000)
+                        )
+                    ]);
+                    loadPromises.push(loadPromise);
                 }
             }
+
+            try {
+                await Promise.all(loadPromises);
+                console.log(`✅ Subject content loaded for grade: ${grade}`);
+            } catch (error) {
+                console.error(`❌ Error loading subject content for grade ${grade}:`, error);
+            }
+        } else {
+            console.error('❌ subjectsConfig not loaded');
         }
     }
 
@@ -238,7 +263,8 @@ class SubjectManager {
         let totalFiles = 0;
 
         for (const subject of this.subjectsConfig) {
-            for (const grade of subject.grades) {
+            const grades = subject.grades || subject.classes || [];
+            for (const grade of grades) {
                 loadPromises.push(this.loadSubjectTopics(subject.id, grade));
                 totalFiles++;
             }
@@ -254,7 +280,8 @@ class SubjectManager {
             // Проверим, что загрузилось
             let loadedCount = 0;
             for (const subject of this.subjectsConfig) {
-                for (const grade of subject.grades) {
+                const grades = subject.grades || subject.classes || [];
+                for (const grade of grades) {
                     if (this.subjects[subject.id] && this.subjects[subject.id][grade]) {
                         loadedCount++;
                     }
@@ -338,8 +365,6 @@ class SubjectManager {
 
     async showTopicsList(subjectId, grade) {
         console.log('📚 showTopicsList called:', subjectId, grade);
-        console.log('✅ SubjectManager loaded and working!');
-        console.log('🎯 Using COMPACT LIST DESIGN for all subjects!');
 
         // Удаляем существующий экран тем перед созданием нового
         const existingTopicsScreen = document.getElementById('subject-topics-screen');
@@ -347,6 +372,9 @@ class SubjectManager {
             existingTopicsScreen.remove();
             console.log('🗑️ Removed existing topics screen');
         }
+
+        // Загружаем контент для предмета, если не загружен
+        await this.loadSubjectContent(grade);
 
         // Устанавливаем текущий предмет и класс
         this.currentSubject = subjectId;
@@ -454,11 +482,8 @@ class SubjectManager {
             </div>
         `;
 
-        // Добавляем экран тем в main-content
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            mainContent.insertAdjacentHTML('beforeend', topicsScreenHTML);
-        }
+        // Добавляем экран тем в body (экраны должны быть на уровне body)
+        document.body.insertAdjacentHTML('beforeend', topicsScreenHTML);
 
         // Используем NavigationManager для перехода на экран тем
         if (window.navigation) {
@@ -466,6 +491,25 @@ class SubjectManager {
             console.log('✅ Topics screen pushed to navigation stack');
         } else {
             console.error('❌ Navigation manager not available');
+        }
+
+        // Добавляем экран в стек навигации и переключаемся
+        if (window.navigation && window.navigation.pushScreen) {
+            window.navigation.pushScreen('subject-topics', { subjectId: subjectId, grade: grade });
+        }
+
+        // Переключаем на экран тем
+        if (window.navigation && window.navigation.showScreen) {
+            window.navigation.showScreen('subject-topics');
+        } else {
+            // Emergency fallback - прячем все экраны и показываем topics
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            const topicsScreen = document.getElementById('subject-topics-screen');
+            if (topicsScreen) {
+                topicsScreen.classList.add('active');
+            }
         }
 
         // Инициализируем поисковую функциональность
@@ -1596,4 +1640,5 @@ class SubjectManager {
 }
 
 // Initialize subject manager
+window.subjectManager = new SubjectManager();
 window.subjectManager = new SubjectManager();

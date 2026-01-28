@@ -1,3 +1,4 @@
+// Version: v=21.0
 // Main App Class
 class ShanksEducationApp {
     constructor() {
@@ -33,7 +34,7 @@ class ShanksEducationApp {
         // Update subscription status
         this.updateSubscriptionStatus();
 
-        // Hide loading screen
+        // Hide loading screen after initialization
         setTimeout(() => {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
@@ -163,7 +164,6 @@ class ShanksEducationApp {
             // Сбрасываем текущий предмет и тему при смене класса
             window.subjectManager.currentSubject = null;
             window.subjectManager.currentTopic = null;
-            console.log(`📚 SubjectManager currentGrade set to: ${grade}, subject/topic reset`);
         }
 
         // Update displays
@@ -620,11 +620,6 @@ class ShanksEducationApp {
         }
 
         console.log('🎯 openSubject called with:', subject);
-        console.log('Subject ID:', subject.id, 'Name:', subject.name, 'Type:', typeof subject.id);
-        console.log('Selected grade:', this.selectedGrade, 'Type:', typeof this.selectedGrade);
-        console.log('Current subjectManager state - currentSubject:', window.subjectManager?.currentSubject, 'currentGrade:', window.subjectManager?.currentGrade);
-        console.log('subjectManager exists:', !!window.subjectManager);
-        console.log('subjectManager loaded:', window.subjectManager?.isLoaded);
 
         // Убеждаемся, что grade - число
         const grade = parseInt(this.selectedGrade);
@@ -648,29 +643,34 @@ class ShanksEducationApp {
             return;
         }
 
+        // Проверяем subjectsConfig
+        if (!window.subjectManager.subjectsConfig) {
+            console.error('❌ subjectsConfig not loaded!');
+            this.showMessage('Конфигурация предметов не загружена');
+            return;
+        }
+
         // Получаем информацию о предмете
+        console.log('🔍 About to call getSubjectInfo with:', subject.id);
         const subjectInfo = window.subjectManager.getSubjectInfo(subject.id);
-        console.log('Subject info:', subjectInfo);
+        console.log('🔍 getSubjectInfo returned:', subjectInfo);
 
         if (!subjectInfo) {
-            console.error('Subject not found:', subject.id);
+            console.error('❌ Subject not found in subjectsConfig:', subject.id);
+            console.error('❌ Available subjects:', window.subjectManager.subjectsConfig?.map(s => s.id));
             this.showMessage(`Предмет "${subject.name}" не найден`);
             return;
         }
 
         // Проверяем, доступен ли предмет в выбранном классе
-        if (!subjectInfo.grades.includes(grade)) {
+        const availableGrades = subjectInfo.grades || subjectInfo.classes || [];
+        if (!availableGrades.includes(grade)) {
             console.log(`Subject ${subject.id} not available for grade ${grade}`);
             this.showMessage(`Предмет "${subject.name}" недоступен в ${grade} классе`);
             return;
         }
 
-        // Проверяем, загружен ли контент
-        if (!window.subjectManager.isContentLoaded()) {
-            console.log('Content not loaded yet, waiting...');
-            this.showMessage('Загружаем контент, подождите...');
-            return;
-        }
+        // Контент будет загружен по требованию в showTopicsList
 
         // Сохраняем текущий предмет и класс для навигации
         window.subjectManager.currentSubject = subject.id;
