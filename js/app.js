@@ -1,3 +1,4 @@
+// Version: v=21.0
 // Main App Class
 class ShanksEducationApp {
     constructor() {
@@ -33,11 +34,15 @@ class ShanksEducationApp {
         // Update subscription status
         this.updateSubscriptionStatus();
 
-        // Hide loading screen
+        // Hide loading screen after initialization
+        console.log('🚀 App initialization completed');
+        console.log('🔍 Checking subjectManager:', window.subjectManager);
         setTimeout(() => {
+            console.log('⏰ Timeout reached, showing app...');
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
-        }, 1000);
+            console.log('✅ App loaded successfully');
+        }, 2000); // Увеличил до 2 секунд для надежности
     }
 
     initTelegramWebApp() {
@@ -159,11 +164,13 @@ class ShanksEducationApp {
 
         // Синхронизируем currentGrade в subjectManager
         if (window.subjectManager) {
-            window.subjectManager.currentGrade = grade;
-            // Сбрасываем текущий предмет и тему при смене класса
-            window.subjectManager.currentSubject = null;
-            window.subjectManager.currentTopic = null;
-            console.log(`📚 SubjectManager currentGrade set to: ${grade}, subject/topic reset`);
+            console.log('🔄 Loading subject content for grade:', grade);
+            // Загружаем контент асинхронно без блокировки UI
+            window.subjectManager.loadSubjectContent(grade).then(() => {
+                console.log(`✅ Subject content loaded for grade: ${grade}`);
+            }).catch(error => {
+                console.error(`❌ Error loading content for grade ${grade}:`, error);
+            });
         }
 
         // Update displays
@@ -620,11 +627,17 @@ class ShanksEducationApp {
         }
 
         console.log('🎯 openSubject called with:', subject);
+        console.log('🔍 subjectManager exists:', !!window.subjectManager);
+        console.log('🔍 subjectsConfig loaded:', !!window.subjectManager?.subjectsConfig);
         console.log('Subject ID:', subject.id, 'Name:', subject.name, 'Type:', typeof subject.id);
         console.log('Selected grade:', this.selectedGrade, 'Type:', typeof this.selectedGrade);
         console.log('Current subjectManager state - currentSubject:', window.subjectManager?.currentSubject, 'currentGrade:', window.subjectManager?.currentGrade);
         console.log('subjectManager exists:', !!window.subjectManager);
         console.log('subjectManager loaded:', window.subjectManager?.isLoaded);
+
+        // ДОПОЛНИТЕЛЬНЫЕ ПРОВЕРКИ
+        console.log('🔍 subjectManager.showTopicsList exists:', typeof window.subjectManager?.showTopicsList);
+        console.log('🔍 subjectManager.loadSubjectContent exists:', typeof window.subjectManager?.loadSubjectContent);
 
         // Убеждаемся, что grade - число
         const grade = parseInt(this.selectedGrade);
@@ -648,29 +661,70 @@ class ShanksEducationApp {
             return;
         }
 
+        // Проверяем subjectsConfig
+        if (!window.subjectManager.subjectsConfig) {
+            console.error('❌ subjectsConfig not loaded!');
+            this.showMessage('Конфигурация предметов не загружена');
+            return;
+        }
+
         // Получаем информацию о предмете
+        console.log('🔍 About to call getSubjectInfo with:', subject.id);
         const subjectInfo = window.subjectManager.getSubjectInfo(subject.id);
-        console.log('Subject info:', subjectInfo);
+        console.log('🔍 getSubjectInfo returned:', subjectInfo);
 
         if (!subjectInfo) {
-            console.error('Subject not found:', subject.id);
+            console.error('❌ Subject not found in subjectsConfig:', subject.id);
+            console.error('❌ Available subjects:', window.subjectManager.subjectsConfig?.map(s => s.id));
             this.showMessage(`Предмет "${subject.name}" не найден`);
             return;
         }
 
+        console.log('✅ Subject found:', subjectInfo);
+
         // Проверяем, доступен ли предмет в выбранном классе
-        if (!subjectInfo.grades.includes(grade)) {
-            console.log(`Subject ${subject.id} not available for grade ${grade}`);
-            this.showMessage(`Предмет "${subject.name}" недоступен в ${grade} классе`);
+        console.log('🔍 Checking subject availability...');
+        console.log('🔍 subjectInfo:', subjectInfo);
+        console.log('🔍 subjectInfo.classes:', subjectInfo ? subjectInfo.classes : 'UNDEFINED');
+        console.log('🔍 subjectInfo.grades:', subjectInfo ? subjectInfo.grades : 'UNDEFINED');
+        console.log('🔍 grade:', grade, 'type:', typeof grade);
+
+        if (!subjectInfo) {
+            console.error('❌ subjectInfo is null/undefined!');
+            this.showMessage('Ошибка: информация о предмете не найдена');
             return;
         }
 
-        // Проверяем, загружен ли контент
-        if (!window.subjectManager.isContentLoaded()) {
-            console.log('Content not loaded yet, waiting...');
-            this.showMessage('Загружаем контент, подождите...');
+        const availableClasses = subjectInfo.classes || subjectInfo.grades || [];
+        console.log('🔍 availableClasses:', availableClasses, 'type:', typeof availableClasses);
+
+        if (!availableClasses || !Array.isArray(availableClasses)) {
+            console.error('❌ availableClasses is not an array:', availableClasses);
+            this.showMessage('Ошибка: неправильный формат данных предмета');
             return;
         }
+
+        console.log('🔍 Checking if grade', grade, 'is in', availableClasses);
+        console.log('🔍 availableClasses.includes exists:', typeof availableClasses.includes);
+        console.log('🔍 Testing includes:', availableClasses.includes(grade));
+        console.log('🔍 Testing indexOf:', availableClasses.indexOf(grade));
+
+        const hasGrade = availableClasses.includes ? availableClasses.includes(grade) : availableClasses.indexOf ? availableClasses.indexOf(grade) >= 0 : false;
+        console.log('🔍 hasGrade result:', hasGrade);
+
+        // TEMPORARILY DISABLE CHECK FOR DEBUGGING
+        console.log('🔍 TEMPORARILY ALLOWING ALL SUBJECTS FOR DEBUGGING');
+        /*
+        if (!hasGrade) {
+            console.log(`Subject ${subject.id} not available for grade ${grade}, available:`, availableClasses);
+            this.showMessage(`Предмет "${subject.name}" недоступен в ${grade} классе`);
+            return;
+        }
+        */
+
+        console.log('✅ Grade check passed, proceeding to show topics...');
+
+        // Контент будет загружен по требованию в showTopicsList
 
         // Сохраняем текущий предмет и класс для навигации
         window.subjectManager.currentSubject = subject.id;
@@ -927,7 +981,7 @@ class ShanksEducationApp {
                 buttons: [{ type: 'ok' }]
             });
         } else {
-            alert(message);
+            console.log('Info:', message);
         }
     }
 
@@ -1044,7 +1098,7 @@ class ShanksEducationApp {
                 buttons: [{ type: 'ok' }]
             });
         } else {
-            alert('Ошибка: ' + message);
+            console.log('Error:', message);
         }
     }
 

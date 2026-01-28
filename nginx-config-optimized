@@ -1,0 +1,40 @@
+server {
+    listen 80;
+    server_name 155.212.132.62;
+
+    # GZIP сжатие для скорости
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript application/json;
+
+    # Кэширование статических файлов
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Кэширование JSON файлов
+    location ~* \.json$ {
+        expires 1h;
+        add_header Cache-Control "public";
+        gzip_vary on;
+    }
+
+    # JavaScript файлы - без кэширования для разработки
+    location ~* \.js$ {
+        expires 0;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+    }
+
+    # Основной location для SPA
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+    }
+
+    # Telegram Web App headers
+    add_header X-Frame-Options "ALLOWALL" always;
+    add_header Content-Security-Policy "frame-ancestors *;" always;
+}
