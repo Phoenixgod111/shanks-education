@@ -1,0 +1,40 @@
+name: 🔧 SSH Manual Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_ip:
+        description: 'Server IP or hostname'
+        required: true
+        default: '127.0.0.1'
+      ssh_user:
+        description: 'SSH username'
+        required: true
+        default: 'root'
+      ssh_port:
+        description: 'SSH port'
+        required: false
+        default: '22'
+
+jobs:
+  ssh-test:
+    name: SSH Manual Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔧 SSH Connection Test
+        run: |
+          echo "🔍 Testing SSH connection..."
+          echo "Server: ${{ github.event.inputs.server_ip }}"
+          echo "User: ${{ github.event.inputs.ssh_user }}"
+          echo "Port: ${{ github.event.inputs.ssh_port }}"
+
+          # Simple connectivity test
+          timeout 10s bash -c "</dev/tcp/${{ github.event.inputs.server_ip }}/${{ github.event.inputs.ssh_port }}" && {
+            echo "✅ Port ${{ github.event.inputs.ssh_port }} is OPEN on ${{ github.event.inputs.server_ip }}"
+            echo "✅ SSH service is accessible"
+          } || {
+            echo "❌ Cannot connect to ${{ github.event.inputs.server_ip }}:${{ github.event.inputs.ssh_port }}"
+            echo "❌ SSH port is closed or server is unreachable"
+            exit 1
+          }

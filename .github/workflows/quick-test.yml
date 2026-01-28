@@ -1,0 +1,17 @@
+name: ⚡ Quick Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  quick-check:
+    name: Quick Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⚡ Quick Test
+        run: |
+          echo "✅ WORKFLOW IS WORKING!"
+          echo "Time: $(date)"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "✅ Test completed successfully!"
