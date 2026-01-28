@@ -14,6 +14,23 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      - name: 🔍 Test SSH Connection
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASS }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          timeout: 15s
+          script: |
+            echo "🔍 Testing SSH connection..."
+            echo "📍 Server: ${{ secrets.SERVER_HOST }}"
+            echo "👤 User: ${{ secrets.SERVER_USER }}"
+            echo "📁 Current directory: $(pwd)"
+            echo "🖥️  OS: $(uname -a)"
+            echo "✅ SSH connection successful!"
+
       - name: 🚀 Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -22,46 +39,127 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           password: ${{ secrets.SERVER_PASS }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          timeout: 30s
+          timeout: 60s
           script: |
             echo "🚀 Starting deployment of Shanks Education..."
+            echo "📍 Current directory: $(pwd)"
+            echo "👤 Current user: $(whoami)"
 
             # Переходим в директорию проекта
-            cd /var/www/shanks-education
+            echo "📁 Changing to project directory..."
+            if [ ! -d "/var/www/shanks-education" ]; then
+                echo "❌ Directory /var/www/shanks-education does not exist"
+                echo "📁 Available directories in /var/www/:"
+                ls -la /var/www/ 2>/dev/null || echo "Cannot list /var/www/"
+                exit 1
+            fi
+
+            cd /var/www/shanks-education || {
+                echo "❌ Failed to change to /var/www/shanks-education"
+                echo "📁 Current directory: $(pwd)"
+                echo "👤 Current user: $(whoami)"
+                ls -la /var/www/
+                exit 1
+            }
+            echo "✅ Successfully changed to project directory"
+
+            # Проверяем, что это git репозиторий
+            if [ ! -d ".git" ]; then
+                echo "❌ This is not a git repository!"
+                ls -la
+                exit 1
+            fi
+            echo "✅ Git repository found"
 
             # Проверяем git статус
             echo "📊 Current git status:"
-            git status --porcelain
-            git log --oneline -5
+            git status --porcelain || echo "⚠️ Git status failed"
+            git log --oneline -3 || echo "⚠️ Git log failed"
+
+            # Определяем основную ветку
+            echo "🔍 Detecting main branch..."
+            if git show-ref --verify --quiet refs/remotes/origin/main; then
+                MAIN_BRANCH="main"
+                echo "✅ Using branch: main"
+            elif git show-ref --verify --quiet refs/remotes/origin/master; then
+                MAIN_BRANCH="master"
+                echo "✅ Using branch: master"
+            else
+                echo "❌ No main or master branch found in origin"
+                git branch -r
+                exit 1
+            fi
 
             # Обновляем код из GitHub
-            echo "📥 Updating code from GitHub..."
-            git fetch origin
-            git reset --hard origin/master
-            git clean -fd
+            echo "📥 Updating code from GitHub branch: $MAIN_BRANCH..."
+            git fetch origin || {
+                echo "❌ Git fetch failed"
+                exit 1
+            }
+
+            git reset --hard origin/$MAIN_BRANCH || {
+                echo "❌ Git reset failed"
+                exit 1
+            }
+
+            git clean -fd || echo "⚠️ Git clean failed"
+            echo "✅ Code updated successfully"
 
             # Устанавливаем правильные права
             echo "🔧 Setting correct permissions..."
-            sudo chown -R www-data:www-data /var/www/shanks-education
+            sudo chown -R www-data:www-data /var/www/shanks-education 2>/dev/null || {
+                echo "⚠️ chown failed, trying without sudo..."
+                chown -R www-data:www-data /var/www/shanks-education 2>/dev/null || echo "⚠️ chown failed completely"
+            }
+
+            # Устанавливаем права на папки subjects
+            echo "🔧 Setting subjects permissions..."
+            sudo chmod -R 755 subjects/ 2>/dev/null || chmod -R 755 subjects/ 2>/dev/null || echo "⚠️ chmod failed"
 
             # Проверяем nginx конфигурацию
             echo "🔍 Checking nginx configuration..."
-            sudo nginx -t
+            if sudo nginx -t 2>/dev/null; then
+                echo "✅ Nginx config is valid"
+            else
+                echo "❌ Nginx config has errors"
+                sudo nginx -T 2>/dev/null || echo "⚠️ Cannot show nginx config"
+            fi
 
             # Перезапускаем nginx для применения изменений
             echo "🔄 Reloading nginx..."
-            sudo systemctl reload nginx
+            if sudo systemctl reload nginx 2>/dev/null; then
+                echo "✅ Nginx reloaded successfully"
+            else
+                echo "⚠️ Nginx reload failed, trying restart..."
+                sudo systemctl restart nginx 2>/dev/null || {
+                    echo "❌ Nginx restart failed"
+                    exit 1
+                }
+            fi
+
+            # Ждем немного для применения изменений
+            echo "⏳ Waiting for nginx to apply changes..."
+            sleep 3
 
             # Финальная проверка сайта
             echo "🌐 Testing website..."
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
-            if [ "$RESPONSE" = "200" ]; then
-                echo "✅ Website is UP (HTTP $RESPONSE)"
-            else
-                echo "❌ Website is DOWN (HTTP $RESPONSE)"
-                exit 1
-            fi
+            for i in {1..3}; do
+                echo "Attempt $i/3..."
+                RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://localhost 2>/dev/null || echo "000")
+                if [ "$RESPONSE" = "200" ]; then
+                    echo "✅ Website is UP (HTTP $RESPONSE)"
+                    break
+                else
+                    echo "⚠️ Attempt $i failed (HTTP $RESPONSE)"
+                    if [ $i -eq 3 ]; then
+                        echo "❌ Website is DOWN after 3 attempts (HTTP $RESPONSE)"
+                        exit 1
+                    fi
+                    sleep 2
+                fi
+            done
 
             echo ""
             echo "🎉 Deployment completed successfully!"
             echo "🌐 Site available at: http://${{ secrets.SERVER_HOST }}"
+            echo "📊 Deployment finished at: $(date)"
