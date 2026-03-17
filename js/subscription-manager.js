@@ -301,7 +301,7 @@ class SubscriptionManager {
                 </div>
 
                 <div class="subscription-footer">
-                    <p>💳 Безопасная оплата через Telegram Stars</p>
+                    <p>💳 Безопасная оплата</p>
                     <p class="subscription-terms">Подписываясь, вы соглашаетесь с условиями использования</p>
                 </div>
             </div>
@@ -373,7 +373,7 @@ class SubscriptionManager {
         if (window.Telegram?.WebApp?.showPopup) {
             window.Telegram.WebApp.showPopup({
                 title: 'Демо-режим',
-                message: `В продакшене здесь будет оплата через Telegram Stars (${price} ₽). Активировать подписку для демо?`,
+                message: `Активировать подписку для демо? (${price} ₽)`,
                 buttons: [
                     { id: 'cancel', type: 'cancel', text: 'Отмена' },
                     { id: 'activate', type: 'default', text: 'Активировать' }

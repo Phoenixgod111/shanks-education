@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Образовательное приложение</title>
-    <meta name="theme-color" content="#1976d2">
+    <meta name="theme-color" content="#007AFF">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-    <!-- Telegram Web App -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
 
     <!-- Material Design Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -394,6 +397,37 @@
         </div>
     </div>
 
+    <!-- Quiz Modal -->
+    <div id="quiz-modal" class="modal quiz-modal">
+        <div class="modal-content quiz-modal-content">
+            <div class="quiz-header">
+                <button class="quiz-close-btn" id="quiz-close-btn" aria-label="Закрыть">
+                    <i class="material-icons">close</i>
+                </button>
+                <div class="quiz-progress-info">
+                    <span id="quiz-counter">1 / 5</span>
+                    <span id="quiz-score">0 правильных</span>
+                </div>
+            </div>
+            <div class="quiz-card" id="quiz-card">
+                <div class="quiz-question" id="quiz-question"></div>
+                <div class="quiz-options" id="quiz-options"></div>
+                <div class="quiz-feedback hidden" id="quiz-feedback">
+                    <p id="quiz-feedback-text"></p>
+                    <button class="btn btn-primary" id="quiz-next-btn">Далее</button>
+                </div>
+            </div>
+            <div class="quiz-result hidden" id="quiz-result">
+                <div class="quiz-result-icon">
+                    <i class="material-icons">emoji_events</i>
+                </div>
+                <h2>Квиз завершён!</h2>
+                <p id="quiz-result-text"></p>
+                <button class="btn btn-primary" id="quiz-finish-btn">Готово</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <!-- ВАЖНО: subject-manager.js ДОЛЖЕН загружаться ДО app.js! -->
     <script src="js/subscription-manager.js?v=1.5"></script>
@@ -401,8 +435,8 @@
     <script src="js/subject-manager.js?v=12.0"></script>
     <script src="js/content-generator.js?v=1.5"></script>
     <script src="js/navigation.js?v=1.5"></script>
-    <script src="js/telegram-api.js?v=1.5"></script>
-    <script src="js/debug-test.js?v=14.0"></script>
-    <script src="js/app.js?v=14.0"></script>
+    <script src="js/platform-api.js?v=1.0"></script>
+    <script src="js/quiz-manager.js?v=1.0"></script>
+    <script src="js/app.js?v=16.0"></script>
 </body>
 </html>

@@ -61,10 +61,10 @@ class ContentGenerator {
     }
 
     static saveTopicsFile(subjectId, grade, topics) {
-        const fileName = `web/subjects/${subjectId}/grade-${grade}/topics.json`;
+        const fileName = `subjects/${subjectId}/grade-${grade}/topics.json`;
 
         // Создаем папку если не существует
-        const dir = `web/subjects/${subjectId}/grade-${grade}`;
+        const dir = `subjects/${subjectId}/grade-${grade}`;
         // В браузере мы не можем создавать файлы, но можем показать как должна выглядеть структура
 
         console.log(`Создать файл: ${fileName}`);

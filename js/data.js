@@ -562,6 +562,16 @@ class DataManager {
         ];
     }
 
+    static getQuizQuestions() {
+        return [
+            { question: 'Сколько будет 7 × 8?', options: ['54', '56', '58', '60'], correct: 1, explanation: '7 × 8 = 56' },
+            { question: 'Столица России?', options: ['Москва', 'Санкт-Петербург', 'Казань', 'Новосибирск'], correct: 0, explanation: 'Столица России — Москва' },
+            { question: 'Какой газ преобладает в атмосфере Земли?', options: ['Кислород', 'Углекислый газ', 'Азот', 'Водород'], correct: 2, explanation: 'Азот составляет около 78% атмосферы' },
+            { question: '2² + 3² = ?', options: ['10', '11', '12', '13'], correct: 3, explanation: '4 + 9 = 13' },
+            { question: 'В каком году началась Великая Отечественная война?', options: ['1939', '1940', '1941', '1942'], correct: 2, explanation: '22 июня 1941 года' }
+        ];
+    }
+
     static async loadDailyChallenge() {
         return {
             id: 1,
