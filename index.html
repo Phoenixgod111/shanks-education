@@ -25,6 +25,15 @@
             <div class="loading-spinner"></div>
             <p>Загрузка...</p>
         </div>
+        <script>
+            // Резерв: скрыть загрузку через 3 сек, если JS не сработал
+            setTimeout(function() {
+                var el = document.getElementById('loading');
+                var main = document.getElementById('main-app');
+                if (el) el.classList.add('hidden');
+                if (main) main.classList.remove('hidden');
+            }, 3000);
+        </script>
 
         <!-- Main App -->
         <div id="main-app" class="hidden">
