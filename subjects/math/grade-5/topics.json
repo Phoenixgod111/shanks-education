@@ -1,0 +1,522 @@
+{
+  "grade": 5,
+  "subject": "Математика",
+  "topics": [
+    {
+      "id": "natural-numbers",
+      "title": "Натуральные числа и шкалы",
+      "description": "Изучаем натуральные числа, координатный луч и сравнение чисел",
+      "estimatedTime": 45,
+      "difficulty": "easy",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Обозначение натуральных чисел",
+          "type": "theory",
+          "duration": 15,
+          "content": "Натуральные числа - это числа, которые используются для счета предметов: 1, 2, 3, 4, 5 и так далее. Все натуральные числа записываются с помощью десяти цифр: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9."
+        },
+        {
+          "id": "lesson-2",
+          "title": "Отрезок. Длина отрезка",
+          "type": "theory",
+          "duration": 20,
+          "content": "Отрезок - это часть прямой, ограниченная двумя точками. Эти точки называются концами отрезка. Расстояние между концами отрезка называется его длиной."
+        }
+      ],
+      "practice": {
+        "easy": [
+          {
+            "id": "practice-easy-1",
+            "title": "Простые упражнения на запись чисел",
+            "type": "exercises",
+            "count": 5,
+            "description": "Базовые упражнения для начинающих",
+            "difficulty": "easy"
+          },
+          {
+            "id": "practice-easy-2",
+            "title": "Чтение чисел",
+            "type": "exercises",
+            "count": 5,
+            "description": "Учимся правильно читать натуральные числа",
+            "difficulty": "easy"
+          }
+        ],
+        "medium": [
+          {
+            "id": "practice-medium-1",
+            "title": "Запись больших чисел",
+            "type": "exercises",
+            "count": 8,
+            "description": "Работаем с многозначными числами",
+            "difficulty": "medium"
+          },
+          {
+            "id": "practice-medium-2",
+            "title": "Сравнение натуральных чисел",
+            "type": "exercises",
+            "count": 10,
+            "description": "Сравниваем числа разной разрядности",
+            "difficulty": "medium"
+          }
+        ],
+        "hard": [
+          {
+            "id": "practice-hard-1",
+            "title": "Комплексные задачи с числами",
+            "type": "word-problems",
+            "count": 6,
+            "description": "Задачи повышенной сложности для углубленного изучения",
+            "difficulty": "hard",
+            "isPremium": true
+          },
+          {
+            "id": "practice-hard-2",
+            "title": "Олимпиадные задачи",
+            "type": "word-problems",
+            "count": 5,
+            "description": "Подготовка к математическим олимпиадам",
+            "difficulty": "hard",
+            "isPremium": true
+          }
+        ]
+      },
+      "quiz": {
+        "id": "quiz-1",
+        "description": "Проверка знаний по натуральным числам",
+        "timeLimit": 10,
+        "questions": [
+          {
+            "question": "Какое из чисел является натуральным?",
+            "options": ["0", "-5", "3", "1.5"],
+            "correct": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "addition-subtraction",
+      "title": "Сложение и вычитание натуральных чисел",
+      "description": "Основные операции с натуральными числами",
+      "estimatedTime": 60,
+      "difficulty": "easy",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Свойства сложения",
+          "type": "theory",
+          "duration": 20,
+          "content": "Переместительное свойство: от перестановки слагаемых сумма не меняется. Сочетательное свойство: чтобы прибавить к числу сумму двух чисел, можно сначала прибавить первое слагаемое, а потом второе."
+        }
+      ],
+      "practice": {
+        "easy": [
+          {
+            "id": "practice-easy-1",
+            "title": "Сложение двузначных чисел",
+            "type": "exercises",
+            "count": 10,
+            "description": "Базовые примеры на сложение",
+            "difficulty": "easy"
+          }
+        ],
+        "medium": [
+          {
+            "id": "practice-medium-1",
+            "title": "Сложение многозначных чисел",
+            "type": "exercises",
+            "count": 12,
+            "description": "Решаем примеры с числами из трех и более цифр",
+            "difficulty": "medium"
+          }
+        ],
+        "hard": [
+          {
+            "id": "practice-hard-1",
+            "title": "Текстовые задачи на сложение",
+            "type": "word-problems",
+            "count": 8,
+            "description": "Сложные задачи с реальными ситуациями",
+            "difficulty": "hard",
+            "isPremium": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "multiplication-division",
+      "title": "Умножение и деление натуральных чисел",
+      "description": "Изучаем операции умножения и деления",
+      "estimatedTime": 60,
+      "difficulty": "medium",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Умножение натуральных чисел",
+          "type": "theory",
+          "duration": 25,
+          "content": "Умножение - это сложение одинаковых слагаемых. Например, 3 × 4 = 3 + 3 + 3 + 3 = 12"
+        },
+        {
+          "id": "lesson-2",
+          "title": "Деление натуральных чисел",
+          "type": "theory",
+          "duration": 25,
+          "content": "Деление - это действие, обратное умножению. Разделить число a на число b - значит найти такое число c, которое при умножении на b дает a."
+        }
+      ],
+      "practice": {
+        "easy": [
+          {
+            "id": "practice-easy-1",
+            "title": "Умножение на 2, 3, 4",
+            "type": "drill",
+            "count": 10,
+            "description": "Базовые примеры умножения",
+            "difficulty": "easy"
+          }
+        ],
+        "medium": [
+          {
+            "id": "practice-medium-1",
+            "title": "Вся таблица умножения",
+            "type": "drill",
+            "count": 15,
+            "description": "Полная таблица умножения до 10",
+            "difficulty": "medium"
+          },
+          {
+            "id": "practice-medium-2",
+            "title": "Деление с остатком",
+            "type": "exercises",
+            "count": 12,
+            "description": "Решаем примеры с делением и остатком",
+            "difficulty": "medium"
+          }
+        ],
+        "hard": [
+          {
+            "id": "practice-hard-1",
+            "title": "Комбинированные задачи",
+            "type": "word-problems",
+            "count": 10,
+            "description": "Задачи на все действия одновременно",
+            "difficulty": "hard",
+            "isPremium": true
+          },
+          {
+            "id": "practice-hard-2",
+            "title": "Логические задачи",
+            "type": "word-problems",
+            "count": 8,
+            "description": "Развиваем математическое мышление",
+            "difficulty": "hard",
+            "isPremium": true
+          }
+        ]
+      },
+      "quiz": {
+        "id": "quiz-1",
+        "description": "Проверка знаний умножения и деления",
+        "timeLimit": 15,
+        "questions": [
+          {
+            "question": "Чему равно 12 × 8?",
+            "options": ["84", "96", "102", "108"],
+            "correct": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "area-volume",
+      "title": "Площади и объемы",
+      "description": "Формулы площади и объема геометрических фигур",
+      "estimatedTime": 50,
+      "difficulty": "medium",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Формулы площади прямоугольника",
+          "type": "theory",
+          "duration": 20,
+          "content": "Площадь прямоугольника равна произведению его длины на ширину: S = a × b"
+        },
+        {
+          "id": "lesson-2",
+          "title": "Единицы измерения площади",
+          "type": "theory",
+          "duration": 15,
+          "content": "Основные единицы измерения площади: квадратный миллиметр, квадратный сантиметр, квадратный метр, гектар, квадратный километр"
+        }
+      ],
+      "practice": {
+        "easy": [
+          {
+            "id": "practice-easy-1",
+            "title": "Площадь прямоугольника",
+            "type": "exercises",
+            "count": 8,
+            "description": "Базовые задачи на площадь",
+            "difficulty": "easy"
+          }
+        ],
+        "medium": [
+          {
+            "id": "practice-medium-1",
+            "title": "Площадь сложных фигур",
+            "type": "word-problems",
+            "count": 10,
+            "description": "Вычисляем площадь составных фигур",
+            "difficulty": "medium"
+          }
+        ],
+        "hard": [
+          {
+            "id": "practice-hard-1",
+            "title": "Задачи на оптимизацию",
+            "type": "word-problems",
+            "count": 7,
+            "description": "Найти максимальную площадь при заданных условиях",
+            "difficulty": "hard",
+            "isPremium": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "fractions",
+      "title": "Обыкновенные дроби",
+      "description": "Введение в мир дробей: доли, обыкновенные дроби",
+      "estimatedTime": 70,
+      "difficulty": "hard",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Доли. Обыкновенные дроби",
+          "type": "theory",
+          "duration": 30,
+          "content": "Дробь - это число, которое состоит из одной или нескольких равных частей единицы. Обыкновенная дробь записывается в виде m/n, где m - числитель, n - знаменатель"
+        },
+        {
+          "id": "lesson-2",
+          "title": "Сравнение дробей",
+          "type": "theory",
+          "duration": 25,
+          "content": "Из двух дробей с одинаковыми знаменателями больше та, у которой числитель больше. Из двух дробей с одинаковыми числителями больше та, у которой знаменатель меньше"
+        }
+      ],
+      "practice": {
+        "easy": [
+          {
+            "id": "practice-easy-1",
+            "title": "Сравнение простых дробей",
+            "type": "exercises",
+            "count": 10,
+            "description": "Учимся сравнивать дроби",
+            "difficulty": "easy"
+          }
+        ],
+        "medium": [
+          {
+            "id": "practice-medium-1",
+            "title": "Действия с дробями",
+            "type": "exercises",
+            "count": 12,
+            "description": "Сложение и вычитание дробей",
+            "difficulty": "medium"
+          }
+        ],
+        "hard": [
+          {
+            "id": "practice-hard-1",
+            "title": "Текстовые задачи с дробями",
+            "type": "word-problems",
+            "count": 10,
+            "description": "Решаем сложные задачи с дробями",
+            "difficulty": "hard",
+            "isPremium": true
+          },
+          {
+            "id": "practice-hard-2",
+            "title": "Олимпиадные задачи с дробями",
+            "type": "word-problems",
+            "count": 6,
+            "description": "Задачи повышенной сложности для подготовки к олимпиадам",
+            "difficulty": "hard",
+            "isPremium": true
+          }
+        ]
+      },
+      "quiz": {
+        "id": "quiz-1",
+        "description": "Тест по обыкновенным дробям",
+        "timeLimit": 20,
+        "questions": [
+          {
+            "question": "Какая дробь больше: 3/7 или 4/7?",
+            "options": ["3/7", "4/7", "Они равны", "Нельзя сравнить"],
+            "correct": 1
+          },
+          {
+            "question": "Чему равна половина от 100?",
+            "options": ["25", "50", "75", "10"],
+            "correct": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "decimal-fractions",
+      "title": "Десятичные дроби",
+      "description": "Запись, сравнение и округление десятичных дробей",
+      "estimatedTime": 55,
+      "difficulty": "medium",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Десятичная запись дробных чисел",
+          "type": "theory",
+          "duration": 25,
+          "content": "Десятичная дробь - это дробь, знаменатель которой равен 10, 100, 1000 и т.д. Например: 0.5 = 5/10, 0.25 = 25/100"
+        }
+      ],
+      "practice": [
+        {
+          "id": "practice-1",
+          "title": "Преобразование дробей",
+          "type": "exercises",
+          "count": 15,
+          "description": "Переводим обыкновенные дроби в десятичные"
+        }
+      ]
+    },
+    {
+      "id": "addition-subtraction-decimals",
+      "title": "Сложение и вычитание десятичных дробей",
+      "description": "Операции с десятичными дробями",
+      "estimatedTime": 50,
+      "difficulty": "medium",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Сложение десятичных дробей",
+          "type": "theory",
+          "duration": 20,
+          "content": "Чтобы сложить десятичные дроби, нужно: записать числа друг под другом так, чтобы запятая была под запятой; сложить как натуральные числа; поставить в ответе запятую под запятой"
+        }
+      ],
+      "practice": [
+        {
+          "id": "practice-1",
+          "title": "Примеры на сложение и вычитание",
+          "type": "exercises",
+          "count": 20,
+          "description": "Решаем примеры с десятичными дробями"
+        }
+      ]
+    },
+    {
+      "id": "multiplication-decimals",
+      "title": "Умножение десятичных дробей",
+      "description": "Правила умножения десятичных дробей на натуральные числа и друг на друга",
+      "estimatedTime": 60,
+      "difficulty": "hard",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Умножение десятичной дроби на натуральное число",
+          "type": "theory",
+          "duration": 25,
+          "content": "Чтобы умножить десятичную дробь на натуральное число, надо: умножить ее на это число, не обращая внимания на запятую; в полученном произведении отделить запятой столько цифр справа, сколько их отделено в десятичной дроби"
+        },
+        {
+          "id": "lesson-2",
+          "title": "Умножение десятичных дробей",
+          "type": "theory",
+          "duration": 30,
+          "content": "Чтобы перемножить две десятичные дроби, надо: выполнить умножение, не обращая внимания на запятые; отделить запятой столько цифр справа, сколько их стоит после запятой в обоих множителях вместе"
+        }
+      ],
+      "practice": [
+        {
+          "id": "practice-1",
+          "title": "Умножение десятичных дробей",
+          "type": "exercises",
+          "count": 25,
+          "description": "Отрабатываем навык умножения десятичных дробей"
+        }
+      ],
+      "quiz": {
+        "id": "quiz-1",
+        "description": "Проверка знаний по умножению десятичных дробей",
+        "timeLimit": 15,
+        "questions": [
+          {
+            "question": "Чему равно 2.5 × 4?",
+            "options": ["8", "10", "12", "15"],
+            "correct": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "division-decimals",
+      "title": "Деление десятичных дробей",
+      "description": "Правила деления десятичных дробей",
+      "estimatedTime": 65,
+      "difficulty": "hard",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Деление десятичной дроби на натуральное число",
+          "type": "theory",
+          "duration": 30,
+          "content": "Чтобы разделить десятичную дробь на натуральное число, надо: разделить дробь на это число, не обращая внимания на запятую; поставить в частном запятую, когда закончится деление целой части"
+        }
+      ],
+      "practice": [
+        {
+          "id": "practice-1",
+          "title": "Деление десятичных дробей",
+          "type": "exercises",
+          "count": 20,
+          "description": "Решаем примеры на деление"
+        }
+      ]
+    },
+    {
+      "id": "instruments-measurements",
+      "title": "Инструменты для вычислений и измерений",
+      "description": "Микрокалькулятор, проценты, углы",
+      "estimatedTime": 40,
+      "difficulty": "easy",
+      "lessons": [
+        {
+          "id": "lesson-1",
+          "title": "Микрокалькулятор",
+          "type": "theory",
+          "duration": 15,
+          "content": "Микрокалькулятор - это электронное вычислительное устройство для выполнения операций над числами"
+        },
+        {
+          "id": "lesson-2",
+          "title": "Проценты",
+          "type": "theory",
+          "duration": 20,
+          "content": "Процент - это сотая часть числа. Обозначается знаком %. 1% = 1/100 = 0.01"
+        }
+      ],
+      "practice": [
+        {
+          "id": "practice-1",
+          "title": "Задачи на проценты",
+          "type": "word-problems",
+          "count": 15,
+          "description": "Решаем практические задачи на проценты"
+        }
+      ]
+    }
+  ]
+}
