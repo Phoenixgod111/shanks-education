@@ -407,6 +407,7 @@
         row.type = "button";
         row.className = "subj-row";
         row.dataset.homeSubject = r.id;
+        row.dataset.subjectId = r.id;
         const muted = !r.pct;
         row.innerHTML = `
           <i data-lucide="${r.icon}" class="subj-ico"></i>
@@ -415,6 +416,9 @@
             <span>${state.grade} класс</span>
           </div>
           <div class="pb-track"><div class="pb-fill" style="width:${muted ? 0 : r.pct}%"></div></div>
+          <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="Убрать из избранного">
+            <i data-lucide="heart" class="ico-heart-fill"></i>
+          </span>
           <span class="subj-pct ${muted ? "subj-pct--muted" : ""}">${r.pct}%</span>`;
         list.appendChild(row);
       });
@@ -442,22 +446,35 @@
       fav.appendChild(empty);
     } else {
       favRows.forEach((r) => {
-        const card = document.createElement("button");
-        card.type = "button";
-        card.className = "fav-card is-button";
-        card.dataset.openSubject = routeSubjectKey(r.id);
-        card.innerHTML = `
+        const wrap = document.createElement("div");
+        wrap.className = "fav-card";
+
+        const main = document.createElement("button");
+        main.type = "button";
+        main.className = "fav-card-main";
+        main.dataset.openSubject = routeSubjectKey(r.id);
+        main.innerHTML = `
           <div class="fav-inner">
             <div class="fav-left">
               <div class="fav-ico"><i data-lucide="${r.icon}"></i></div>
               <div class="fav-meta"><strong>${r.name}</strong></div>
             </div>
             <div class="fav-stat">
-              <i data-lucide="heart" class="ico-heart-fill"></i>
               <span class="fav-pct">${r.pct}%</span>
             </div>
           </div>`;
-        fav.appendChild(card);
+
+        const rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "fav-card-remove";
+        rm.dataset.favRemove = "1";
+        rm.dataset.subjectId = r.id;
+        rm.setAttribute("aria-label", "Убрать из избранного");
+        rm.innerHTML = `<i data-lucide="heart-off"></i>`;
+
+        wrap.appendChild(main);
+        wrap.appendChild(rm);
+        fav.appendChild(wrap);
       });
     }
 
@@ -661,6 +678,29 @@
       return;
     }
 
+    const ht = e.target.closest("[data-heart-toggle]");
+    if (ht) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = ht.closest(".subject-row") || ht.closest(".subj-row");
+      if (row?.dataset.subjectId) {
+        toggleFavoriteId(state.grade, row.dataset.subjectId);
+        refreshProgressAfterFav();
+      }
+      return;
+    }
+
+    const favRm = e.target.closest("[data-fav-remove]");
+    if (favRm) {
+      e.preventDefault();
+      const id = favRm.dataset.subjectId;
+      if (id) {
+        toggleFavoriteId(state.grade, id);
+        refreshProgressAfterFav();
+      }
+      return;
+    }
+
     const hs = e.target.closest("[data-home-subject]");
     if (hs) {
       state.subjectKey = routeSubjectKey(hs.getAttribute("data-home-subject"));
@@ -670,23 +710,12 @@
       return;
     }
 
-    const fav = e.target.closest(".fav-card[data-open-subject]");
+    const fav = e.target.closest(".fav-card-main[data-open-subject]");
     if (fav) {
       state.subjectKey = fav.dataset.openSubject;
       renderSubjectDetail();
       setTab("subjects");
       openStack("subject-detail");
-      return;
-    }
-
-    const ht = e.target.closest("[data-heart-toggle]");
-    if (ht) {
-      e.preventDefault();
-      const row = ht.closest(".subject-row");
-      if (row?.dataset.subjectId) {
-        toggleFavoriteId(state.grade, row.dataset.subjectId);
-        refreshProgressAfterFav();
-      }
       return;
     }
 
@@ -821,7 +850,7 @@
       if (e.key !== "Enter") return;
       const ht = document.activeElement?.closest?.("[data-heart-toggle]");
       if (ht) {
-        const row = ht.closest(".subject-row");
+        const row = ht.closest(".subject-row") || ht.closest(".subj-row");
         if (row?.dataset.subjectId) {
           toggleFavoriteId(state.grade, row.dataset.subjectId);
           refreshProgressAfterFav();
