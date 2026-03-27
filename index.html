@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20250333" />
+  <link rel="stylesheet" href="css/app.css?v=20250334" />
 </head>
 <body>
   <div id="app">
@@ -228,7 +228,7 @@
       </div>
     </div>
 
-    <!-- Полноэкран: Практика / Тест — Navy V8 (easy / med / hard) -->
+    <!-- Полноэкран: Практика / Тест — Practice Med V8 — Navy (design-shanks, светлая сцена) -->
     <div
       class="stack-layer stack-screen stack-activity"
       id="stack-activity"
@@ -236,44 +236,51 @@
       data-view="practice"
       data-diff="med"
     >
-      <div class="phone phone--navy-activity">
-        <div class="screen-body screen-body--activity">
-          <header class="act-top">
-            <button type="button" class="act-back" id="act-back" aria-label="Назад к теме">
-              <i data-lucide="chevron-left"></i>
-            </button>
-            <div class="act-head-main">
-              <h2 class="act-title" id="act-title">Тема</h2>
-              <p class="act-meta" id="act-meta">Предмет · класс</p>
-              <div class="act-progress-line">
-                <div class="act-progress-track">
-                  <div class="act-progress-fill" id="act-progress-fill" style="width: 0%"></div>
-                </div>
-                <span class="act-pct-cap" id="act-pct-label">0% · 0/0</span>
+      <div class="phone phone--activity-v8">
+        <div class="screen-body screen-body--activity-v8">
+          <div class="act-spacer-top" aria-hidden="true"></div>
+
+          <div class="act-hero-card">
+            <div class="act-hero-head">
+              <button type="button" class="act-back-v8" id="act-back" aria-label="Назад к теме">
+                <i data-lucide="chevron-left"></i>
+              </button>
+              <div class="act-hero-text">
+                <h2 class="act-title-v8" id="act-title">Тема</h2>
+                <p class="act-meta-v8" id="act-meta">Предмет · класс</p>
               </div>
             </div>
-          </header>
+            <div class="act-progress-wrap-v8">
+              <div class="act-progress-track-v8">
+                <div class="act-progress-fill-v8" id="act-progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <p class="act-pct-caption-v8" id="act-pct-label">0% · 0/0</p>
+          </div>
 
-          <div class="act-main-tabs" id="act-main-tabs" role="tablist" aria-label="Режим">
-            <button type="button" class="act-tab" data-act-tab="theory" id="act-tab-theory">
-              Теория
+          <div class="act-tabs-strip" id="act-main-tabs" role="tablist" aria-label="Режим">
+            <button type="button" class="act-tab-v8" data-act-tab="theory" id="act-tab-theory">
+              <span class="act-tab-v8-label">Теория</span>
+              <span class="act-tab-v8-line" aria-hidden="true"></span>
             </button>
-            <button type="button" class="act-tab" data-act-tab="practice" id="act-tab-practice">
-              Практика
+            <button type="button" class="act-tab-v8" data-act-tab="practice" id="act-tab-practice">
+              <span class="act-tab-v8-label">Практика</span>
+              <span class="act-tab-v8-line" aria-hidden="true"></span>
             </button>
-            <button type="button" class="act-tab" data-act-tab="test" id="act-tab-test">
-              Тест
+            <button type="button" class="act-tab-v8" data-act-tab="test" id="act-tab-test">
+              <span class="act-tab-v8-label">Тест</span>
+              <span class="act-tab-v8-line" aria-hidden="true"></span>
             </button>
           </div>
 
-          <div class="act-diff-wrap">
-            <p class="act-diff-kicker" id="act-diff-kicker">Сложность</p>
-            <div class="act-diff-row" id="act-diff-row" role="tablist" aria-label="Сложность"></div>
+          <div class="act-diff-wrap-v8">
+            <p class="act-diff-kicker-v8" id="act-diff-kicker">Сложность</p>
+            <div class="act-diff-row-v8" id="act-diff-row" role="tablist" aria-label="Сложность"></div>
           </div>
 
-          <div class="act-scroll" id="act-body"></div>
+          <div class="act-scroll-v8" id="act-body"></div>
 
-          <footer class="act-footer" id="act-footer"></footer>
+          <footer class="act-footer-v8" id="act-footer"></footer>
         </div>
       </div>
     </div>
@@ -282,7 +289,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20250331"></script>
+  <script src="js/data.js?v=20250334"></script>
   <script src="js/app.js?v=20250333"></script>
 </body>
 </html>

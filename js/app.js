@@ -228,16 +228,11 @@
     if (pctEl) pctEl.textContent = pack.progressCaption || "";
     if (fillEl) fillEl.style.width = `${Number(pack.progressPct) || 0}%`;
 
-    const accentPractice = { easy: "#22c55e", med: "#f59e0b", hard: "#7c3aed" };
-    const accentTest = { easy: "#38bdf8", med: "#38bdf8", hard: "#a855f7" };
-    const acc = view === "practice" ? accentPractice[diff] : accentTest[diff];
-    root.style.setProperty("--act-accent", acc || "#38bdf8");
-
-    $$("#act-main-tabs .act-tab").forEach((btn) => {
+    $$("#act-main-tabs .act-tab-v8").forEach((btn) => {
       const t = btn.dataset.actTab;
       const on =
         (t === "practice" && view === "practice") || (t === "test" && view === "test");
-      btn.classList.toggle("act-tab--on", on);
+      btn.classList.toggle("act-tab-v8--on", on);
     });
 
     const kicker = $("#act-diff-kicker");
@@ -252,10 +247,14 @@
       const Lt = { easy: "Лёгкий", med: "Средний", hard: "Тяжёлый" };
       const L = view === "practice" ? Lp : Lt;
       row.innerHTML = keys
-        .map(
-          (d) =>
-            `<button type="button" class="act-diff-pill${d === diff ? " act-diff-pill--on" : ""}" data-act-diff="${d}">${L[d]}</button>`
-        )
+        .map((d) => {
+          const on = d === diff;
+          const isHard = d === "hard";
+          const inner = isHard
+            ? `<i data-lucide="lock" class="act-diff-lock"></i><span>${L[d]}</span>`
+            : L[d];
+          return `<button type="button" class="act-diff-pill-v8${on ? " act-diff-pill-v8--on" : ""}${isHard ? " act-diff-pill-v8--hard" : ""}" data-act-diff="${d}">${inner}</button>`;
+        })
         .join("");
     }
 
@@ -265,22 +264,46 @@
     if (foot) foot.innerHTML = "";
 
     if (view === "practice") {
+      const tasks = pack.tasks || [];
+      const doneN = tasks.filter((t) => t.done).length;
       const sec = document.createElement("p");
-      sec.className = "act-section-title";
-      sec.textContent = pack.sectionTitle || "Задачи";
+      sec.className = "act-section-title-v8";
+      sec.textContent =
+        tasks.length > 0 ? `Задачи (${doneN} из ${tasks.length})` : "Задачи";
       body.appendChild(sec);
-      (pack.tasks || []).forEach((task) => {
+      const curIdx = tasks.findIndex((t) => !t.done);
+
+      tasks.forEach((task, i) => {
+        const isCurrent = curIdx >= 0 && i === curIdx;
+        if (isCurrent) {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "act-task-card act-task-card--current";
+          const preview = task.preview
+            ? `<p class="act-task-preview">${task.preview}</p>`
+            : "";
+          card.innerHTML = `
+            <div class="act-task-current-head">
+              <strong>${task.title}</strong>
+              <span class="act-task-pill">Решаем</span>
+            </div>
+            ${preview || `<p class="act-task-preview">${task.sub}</p>`}`;
+          card.addEventListener("click", () =>
+            toast("Решение задачи — в полной версии приложения.")
+          );
+          body.appendChild(card);
+          return;
+        }
         const card = document.createElement("button");
         card.type = "button";
-        card.className = "act-task-card";
+        card.className =
+          "act-task-card act-task-card--queue" +
+          (task.done ? " act-task-card--done" : "");
         card.innerHTML = `
-          <div class="act-task-top">
-            <span class="act-task-dot${task.done ? " act-task-dot--done" : ""}" aria-hidden="true"></span>
-            <div class="act-task-text">
-              <strong>${task.title}</strong>
-              <span>${task.sub}</span>
-            </div>
-            <i data-lucide="chevron-right" class="act-task-chev"></i>
+          <span class="act-task-queue-accent" aria-hidden="true"></span>
+          <div class="act-task-queue-body">
+            <strong>${task.title}</strong>
+            <span>${task.preview ? task.preview : task.sub}</span>
           </div>`;
         card.addEventListener("click", () =>
           toast("Решение задачи — в полной версии приложения.")
@@ -289,7 +312,7 @@
       });
       if (pack.premium) {
         const pr = document.createElement("div");
-        pr.className = "act-premium";
+        pr.className = "act-premium-v8";
         pr.innerHTML = `
           <div class="act-premium-copy">
             <strong>${pack.premium.title}</strong>
@@ -298,10 +321,10 @@
           <button type="button" class="act-premium-cta" data-act-premium>${pack.premium.cta}</button>`;
         body.appendChild(pr);
       }
-      foot.innerHTML = `<button type="button" class="act-cta-btn" id="act-cta">${pack.cta || "Далее"}</button>`;
+      foot.innerHTML = `<button type="button" class="act-cta-btn-v8" id="act-cta">${pack.cta || "Далее"}</button>`;
     } else {
       const sec = document.createElement("p");
-      sec.className = "act-section-title";
+      sec.className = "act-section-title-v8";
       sec.textContent = pack.sectionTitle || "Тесты";
       body.appendChild(sec);
       (pack.tests || []).forEach((te) => {
@@ -332,9 +355,9 @@
         body.appendChild(card);
       });
       if (pack.ctaHint) {
-        foot.innerHTML = `<p class="act-footer-hint">${pack.ctaHint}</p><button type="button" class="act-cta-btn act-cta-btn--ghost" id="act-cta">${pack.cta}</button>`;
+        foot.innerHTML = `<p class="act-footer-hint-v8">${pack.ctaHint}</p><button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-cta">${pack.cta}</button>`;
       } else {
-        foot.innerHTML = `<button type="button" class="act-cta-btn" id="act-cta">${pack.cta || "Начать"}</button>`;
+        foot.innerHTML = `<button type="button" class="act-cta-btn-v8" id="act-cta">${pack.cta || "Начать"}</button>`;
       }
     }
 
