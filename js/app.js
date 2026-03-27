@@ -445,35 +445,38 @@
       empty.textContent = "Нет избранных — нажми ❤ на предмете ниже";
       fav.appendChild(empty);
     } else {
-      favRows.forEach((r) => {
+      favRows.forEach((r, i) => {
         const wrap = document.createElement("div");
-        wrap.className = "fav-card";
+        wrap.className = "fav-card" + (i % 2 ? " fav-card--accent-b" : " fav-card--accent-a");
+        wrap.dataset.subjectId = r.id;
 
-        const main = document.createElement("button");
-        main.type = "button";
-        main.className = "fav-card-main";
-        main.dataset.openSubject = routeSubjectKey(r.id);
-        main.innerHTML = `
-          <div class="fav-inner">
-            <div class="fav-left">
-              <div class="fav-ico"><i data-lucide="${r.icon}"></i></div>
-              <div class="fav-meta"><strong>${r.name}</strong></div>
-            </div>
-            <div class="fav-stat">
-              <span class="fav-pct">${r.pct}%</span>
-            </div>
-          </div>`;
+        const accent = document.createElement("span");
+        accent.className = "fav-card-accent";
+        accent.setAttribute("aria-hidden", "true");
 
-        const rm = document.createElement("button");
-        rm.type = "button";
-        rm.className = "fav-card-remove";
-        rm.dataset.favRemove = "1";
-        rm.dataset.subjectId = r.id;
-        rm.setAttribute("aria-label", "Убрать из избранного");
-        rm.innerHTML = `<i data-lucide="heart-off"></i>`;
+        const rowInner = document.createElement("div");
+        rowInner.className = "fav-card-row";
 
-        wrap.appendChild(main);
-        wrap.appendChild(rm);
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "fav-card-open";
+        open.dataset.openSubject = routeSubjectKey(r.id);
+        open.innerHTML = `
+          <span class="fav-ico"><i data-lucide="${r.icon}"></i></span>
+          <span class="fav-meta"><strong>${r.name}</strong></span>`;
+
+        const stat = document.createElement("div");
+        stat.className = "fav-stat";
+        stat.innerHTML = `
+          <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="Убрать из избранного">
+            <i data-lucide="heart" class="ico-heart-fill"></i>
+          </span>
+          <span class="fav-pct">${r.pct}%</span>`;
+
+        rowInner.appendChild(open);
+        rowInner.appendChild(stat);
+        wrap.appendChild(accent);
+        wrap.appendChild(rowInner);
         fav.appendChild(wrap);
       });
     }
@@ -682,20 +685,12 @@
     if (ht) {
       e.preventDefault();
       e.stopPropagation();
-      const row = ht.closest(".subject-row") || ht.closest(".subj-row");
+      const row =
+        ht.closest(".subject-row") ||
+        ht.closest(".subj-row") ||
+        ht.closest(".fav-card");
       if (row?.dataset.subjectId) {
         toggleFavoriteId(state.grade, row.dataset.subjectId);
-        refreshProgressAfterFav();
-      }
-      return;
-    }
-
-    const favRm = e.target.closest("[data-fav-remove]");
-    if (favRm) {
-      e.preventDefault();
-      const id = favRm.dataset.subjectId;
-      if (id) {
-        toggleFavoriteId(state.grade, id);
         refreshProgressAfterFav();
       }
       return;
@@ -710,7 +705,7 @@
       return;
     }
 
-    const fav = e.target.closest(".fav-card-main[data-open-subject]");
+    const fav = e.target.closest(".fav-card-open[data-open-subject]");
     if (fav) {
       state.subjectKey = fav.dataset.openSubject;
       renderSubjectDetail();
@@ -850,7 +845,10 @@
       if (e.key !== "Enter") return;
       const ht = document.activeElement?.closest?.("[data-heart-toggle]");
       if (ht) {
-        const row = ht.closest(".subject-row") || ht.closest(".subj-row");
+        const row =
+          ht.closest(".subject-row") ||
+          ht.closest(".subj-row") ||
+          ht.closest(".fav-card");
         if (row?.dataset.subjectId) {
           toggleFavoriteId(state.grade, row.dataset.subjectId);
           refreshProgressAfterFav();
