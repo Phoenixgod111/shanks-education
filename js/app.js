@@ -1,8 +1,7 @@
 /**
- * Shanks — навигация и действия.
- * «5 агентов» (краткий консенсус): (1) маршруты предметов целостные,
- * (2) таббар + стек без конфликтов, (3) явные active/aria состояния,
- * (4) каждый CTA даёт отклик или переход, (5) жесты/клавиша «назад» — стек закрывается предсказуемо.
+ * Shanks — навигация, избранное по классам, «Мой прогресс» = среднее по избранным.
+ * Консенсус 15 «агентов»: единый каталог, LS на класс, деталка тянет % из каталога,
+ * главная синхронизируется с вкладкой класса, карточки одной ширины, кривизна — в CSS.
  */
 (function () {
   "use strict";
@@ -10,6 +9,8 @@
   const D = window.SHANKS_DATA || {};
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+  const PREFS_KEY = D.storageKey || "shanks_prefs_v2";
 
   const state = {
     tab: "home",
@@ -19,6 +20,7 @@
     topicMode: "theory",
   };
 
+  let prefs = { favoritesByGrade: {}, initialized: false };
   let toastTimer = null;
 
   function iconsRefresh() {
@@ -34,6 +36,59 @@
     toastTimer = setTimeout(() => el.classList.remove("is-visible"), 2600);
   }
 
+  function loadPrefs() {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { favoritesByGrade: {}, initialized: false };
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch (e) {}
+  }
+
+  function initPrefs() {
+    prefs = loadPrefs();
+    if (!prefs.initialized) {
+      prefs.favoritesByGrade = {};
+      const seed = D.seedFavoritesByGrade || {};
+      Object.keys(seed).forEach((g) => {
+        prefs.favoritesByGrade[g] = seed[g].slice();
+      });
+      prefs.initialized = true;
+      savePrefs();
+    }
+    (D.grades || []).forEach((g) => {
+      const k = String(g);
+      if (!Array.isArray(prefs.favoritesByGrade[k])) prefs.favoritesByGrade[k] = [];
+    });
+  }
+
+  function getFavoritesForGrade(g) {
+    return prefs.favoritesByGrade[String(g)] || [];
+  }
+
+  function setFavoritesForGrade(g, ids) {
+    prefs.favoritesByGrade[String(g)] = ids;
+    savePrefs();
+  }
+
+  function toggleFavoriteId(g, rowId) {
+    const arr = getFavoritesForGrade(g).slice();
+    const i = arr.indexOf(rowId);
+    if (i >= 0) arr.splice(i, 1);
+    else arr.push(rowId);
+    setFavoritesForGrade(g, arr);
+    toast(i >= 0 ? "Убрано из избранного" : "В избранном · видно на главной");
+  }
+
+  function getCatalog(grade) {
+    return D.catalogByGrade?.[grade] || [];
+  }
+
   function routeSubjectKey(id) {
     const R = D.subjectRoute || {};
     return R[id] || id;
@@ -41,6 +96,25 @@
 
   function getSubjectDetail(key) {
     return D.subjectDetail?.[key] || D.subjectDetail?.math;
+  }
+
+  function catalogRowForDetailKey(grade, detailKey) {
+    return getCatalog(grade).find((r) => routeSubjectKey(r.id) === detailKey);
+  }
+
+  function computeOverallAverage(grade) {
+    const catalog = getCatalog(grade);
+    const fav = new Set(getFavoritesForGrade(grade));
+    const favRows = catalog.filter((r) => fav.has(r.id));
+    if (favRows.length === 0) return { pct: 0, n: 0 };
+    const sum = favRows.reduce((s, r) => s + (Number(r.pct) || 0), 0);
+    return { pct: Math.round(sum / favRows.length), n: favRows.length };
+  }
+
+  function refreshProgressAfterFav() {
+    renderSubjects();
+    renderHome();
+    iconsRefresh();
   }
 
   function setTab(tab) {
@@ -53,6 +127,7 @@
       if (on) btn.setAttribute("aria-current", "page");
       else btn.removeAttribute("aria-current");
     });
+    if (tab === "home") renderHome();
     if (tab === "subjects") renderSubjects();
     if (tab === "notes") renderNotes();
     iconsRefresh();
@@ -125,44 +200,52 @@
     });
   }
 
-  function toggleRowFavorite(rowId) {
-    const rows = D.subjectsScreen?.rows;
-    if (!rows) return;
-    const r = rows.find((x) => x.id === rowId);
-    if (r) {
-      r.favorite = !r.favorite;
-      toast(r.favorite ? "В избранном" : "Убрано из избранного");
-    }
-  }
-
   function renderHome() {
     const h = D.home;
     if (!h) return;
-    $("#home-big-pct").textContent = `${h.overallPct}%`;
+    const { pct, n } = computeOverallAverage(state.grade);
+    $("#home-big-pct").textContent = `${pct}%`;
+    const cap = $("#home-progress-caption");
+    if (cap) {
+      if (n === 0) cap.textContent = "добавь избранные в «Предметах»";
+      else cap.textContent = `среднее по ${n} избранным · ${state.grade} класс`;
+    }
+
     $("#home-task-text").textContent = h.taskDay.title;
     $("#home-task-xp").textContent = h.taskDay.xp;
     $("#home-quiz-text").textContent = h.quiz.text;
     const span = $("#home-quiz-btn")?.querySelector("span");
     if (span) span.textContent = h.quiz.cta;
 
+    const catalog = getCatalog(state.grade);
+    const favSet = new Set(getFavoritesForGrade(state.grade));
+    const favRows = catalog.filter((r) => favSet.has(r.id));
+
     const list = $("#home-subj-list");
     list.innerHTML = "";
-    h.subjects.forEach((s) => {
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "subj-row";
-      row.dataset.homeSubject = s.id;
-      const muted = s.pct === 0;
-      row.innerHTML = `
-        <i data-lucide="${s.icon}" class="subj-ico"></i>
-        <div class="subj-meta">
-          <strong>${s.label}</strong>
-          <span>${s.sub}</span>
-        </div>
-        <div class="pb-track"><div class="pb-fill" style="width:${muted ? 0 : s.pct}%"></div></div>
-        <span class="subj-pct ${muted ? "subj-pct--muted" : ""}">${s.pct}%</span>`;
-      list.appendChild(row);
-    });
+    if (favRows.length === 0) {
+      const p = document.createElement("p");
+      p.className = "home-fav-empty";
+      p.textContent = D.copy?.noFavorites || "Нет избранных для этого класса.";
+      list.appendChild(p);
+    } else {
+      favRows.forEach((r) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "subj-row";
+        row.dataset.homeSubject = r.id;
+        const muted = !r.pct;
+        row.innerHTML = `
+          <i data-lucide="${r.icon}" class="subj-ico"></i>
+          <div class="subj-meta">
+            <strong>${r.name}</strong>
+            <span>${state.grade} класс</span>
+          </div>
+          <div class="pb-track"><div class="pb-fill" style="width:${muted ? 0 : r.pct}%"></div></div>
+          <span class="subj-pct ${muted ? "subj-pct--muted" : ""}">${r.pct}%</span>`;
+        list.appendChild(row);
+      });
+    }
   }
 
   function renderSubjects() {
@@ -172,34 +255,47 @@
       p.classList.toggle("pill--on", g === state.grade);
     });
 
+    const catalog = getCatalog(state.grade);
+    const favIds = getFavoritesForGrade(state.grade);
+    const favSet = new Set(favIds);
+    const favRows = catalog.filter((r) => favSet.has(r.id));
+
     const fav = $("#fav-list");
     fav.innerHTML = "";
-    (D.subjectsScreen?.favorites || []).forEach((f) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "fav-card is-button";
-      card.dataset.openSubject = routeSubjectKey(f.id);
-      card.innerHTML = `
-        <div class="fav-inner">
-          <div class="fav-left">
-            <div class="fav-ico"><i data-lucide="${f.icon}"></i></div>
-            <div class="fav-meta"><strong>${f.name}</strong></div>
-          </div>
-          <div class="fav-stat">
-            <i data-lucide="heart" class="ico-heart-fill"></i>
-            <span class="fav-pct">${f.pct}%</span>
-          </div>
-        </div>`;
-      fav.appendChild(card);
-    });
+    if (favRows.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "fav-strip-empty";
+      empty.textContent = "Нет избранных — нажми ❤ на предмете ниже";
+      fav.appendChild(empty);
+    } else {
+      favRows.forEach((r) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "fav-card is-button";
+        card.dataset.openSubject = routeSubjectKey(r.id);
+        card.innerHTML = `
+          <div class="fav-inner">
+            <div class="fav-left">
+              <div class="fav-ico"><i data-lucide="${r.icon}"></i></div>
+              <div class="fav-meta"><strong>${r.name}</strong></div>
+            </div>
+            <div class="fav-stat">
+              <i data-lucide="heart" class="ico-heart-fill"></i>
+              <span class="fav-pct">${r.pct}%</span>
+            </div>
+          </div>`;
+        fav.appendChild(card);
+      });
+    }
 
     const rows = $("#sub-rows");
     rows.innerHTML = "";
-    (D.subjectsScreen?.rows || []).forEach((r) => {
+    catalog.forEach((r) => {
       const el = document.createElement("button");
       el.type = "button";
       el.className = "subject-row";
       el.dataset.subjectId = r.id;
+      const isFav = favSet.has(r.id);
       el.innerHTML = `
         <div class="sr-left">
           <span class="sr-dot" style="background:${r.dot}"></span>
@@ -207,7 +303,7 @@
         </div>
         <div class="sr-right">
           <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="В избранное">
-            <i data-lucide="heart" class="${r.favorite ? "ico-heart-fill" : "ico-heart"}"></i>
+            <i data-lucide="heart" class="${isFav ? "ico-heart-fill" : "ico-heart"}"></i>
           </span>
           <span class="sr-pct">${r.pct}%</span>
         </div>`;
@@ -224,10 +320,12 @@
   function renderSubjectDetail() {
     const sd = getSubjectDetail(state.subjectKey);
     if (!sd) return;
-    $("#sd-class").textContent = `★ ${sd.classLabel}`;
-    $("#sd-title").textContent = sd.title;
-    $("#sd-pct-label").textContent = `${sd.heroPct}% изучено`;
-    $("#sd-hero-fill").style.width = `${sd.heroPct}%`;
+    $("#sd-class").textContent = `★ КЛАСС ${state.grade}`;
+    const row = catalogRowForDetailKey(state.grade, state.subjectKey);
+    $("#sd-title").textContent = row?.name || sd.title;
+    const heroPct = row ? row.pct : sd.heroPct;
+    $("#sd-pct-label").textContent = `${heroPct}% изучено`;
+    $("#sd-hero-fill").style.width = `${heroPct}%`;
 
     const tl = $("#sd-topics");
     tl.innerHTML = "";
@@ -352,7 +450,9 @@
     $("#tp-title").textContent = topic?.title || T.title;
     const subjTitle = detail?.title || "Предмет";
     $("#tp-meta").textContent = `${subjTitle} · ${state.grade} класс`;
-    $("#tp-bar").style.width = `${T.barWidthPct}%`;
+    const row = catalogRowForDetailKey(state.grade, state.subjectKey);
+    const barPct = row ? Math.min(100, Math.max(0, row.pct)) : T.barWidthPct;
+    $("#tp-bar").style.width = `${barPct}%`;
     state.topicMode = "theory";
     syncModeTiles();
     syncTopicBody();
@@ -400,7 +500,7 @@
       renderSubjectDetail();
       setTab("subjects");
       openStack("subject-detail");
-      toast((D.copy && D.copy.challenge) || "Открываем математику.");
+      toast((D.copy && D.copy.challenge) || "Открываем задачи.");
       return;
     }
 
@@ -433,9 +533,8 @@
       e.preventDefault();
       const row = ht.closest(".subject-row");
       if (row?.dataset.subjectId) {
-        toggleRowFavorite(row.dataset.subjectId);
-        renderSubjects();
-        iconsRefresh();
+        toggleFavoriteId(state.grade, row.dataset.subjectId);
+        refreshProgressAfterFav();
       }
       return;
     }
@@ -499,6 +598,7 @@
       p.addEventListener("click", () => {
         state.grade = +p.dataset.grade;
         renderSubjects();
+        renderHome();
         iconsRefresh();
       });
     });
@@ -509,15 +609,15 @@
       if (ht) {
         const row = ht.closest(".subject-row");
         if (row?.dataset.subjectId) {
-          toggleRowFavorite(row.dataset.subjectId);
-          renderSubjects();
-          iconsRefresh();
+          toggleFavoriteId(state.grade, row.dataset.subjectId);
+          refreshProgressAfterFav();
         }
       }
     });
   }
 
   function init() {
+    initPrefs();
     $("#loading")?.classList.add("is-hidden");
     $("#main-app")?.classList.remove("main-hidden");
 
