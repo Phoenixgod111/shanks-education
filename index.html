@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Shanks — обучение</title>
+  <meta name="theme-color" content="#ea580c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css?v=shanks-v8" />
+</head>
+<body>
+  <div id="app">
+    <div id="loading" class="loading-screen">
+      <p>Загрузка…</p>
+    </div>
+
+    <div id="main-app" class="main-hidden">
+      <!-- ——— Главная ——— -->
+      <div class="view view-main is-active" data-tab="home">
+        <div class="phone">
+          <header class="status-bar status-bar--light">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <i data-lucide="signal"></i>
+              <i data-lucide="wifi"></i>
+              <i data-lucide="battery-medium" class="icon-battery"></i>
+            </div>
+          </header>
+          <div class="screen-body">
+            <div class="card-progress-wrap">
+              <div class="cp-header">
+                <span class="kicker">★ МОЙ ПРОГРЕСС</span>
+              </div>
+              <div class="cp-summary">
+                <span class="big-pct" id="home-big-pct">15%</span>
+                <span class="summary-label">общий прогресс</span>
+              </div>
+              <div class="divider-faint"></div>
+              <div id="home-subj-list"></div>
+            </div>
+            <div class="promo-stack">
+              <div class="card-dark">
+                <div class="row-between">
+                  <div class="task-title-row">
+                    <i data-lucide="flame"></i>
+                    ЗАДАЧА ДНЯ
+                  </div>
+                  <span class="pill-xp" id="home-task-xp">+50 XP</span>
+                </div>
+                <h3 id="home-task-text">Реши 5 задач по алгебре и получи +50 XP</h3>
+                <button type="button" class="btn-light">Начать челлендж →</button>
+              </div>
+              <div class="card-orange">
+                <div class="quiz-head">
+                  <i data-lucide="target"></i>
+                  <span>QUIZ</span>
+                </div>
+                <p id="home-quiz-text">Проверь знания за 2 минуты! Варианты ответов ждут.</p>
+                <button type="button" class="btn-dark" id="home-quiz-btn"><span>Играть 🎮</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ——— Предметы ——— -->
+      <div class="view view-main" data-tab="subjects">
+        <div class="phone">
+          <header class="status-bar status-bar--light">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <i data-lucide="signal"></i>
+              <i data-lucide="wifi"></i>
+              <i data-lucide="battery-medium" class="icon-battery"></i>
+            </div>
+          </header>
+          <div class="screen-body">
+            <div class="page-header">
+              <span class="kicker" id="sub-grade-kicker">★ КЛАСС 5</span>
+              <h1 class="page-title">Предметы</h1>
+              <div class="pills">
+                <button type="button" class="pill pill--on" data-grade="5">5</button>
+                <button type="button" class="pill" data-grade="6">6</button>
+                <button type="button" class="pill" data-grade="7">7</button>
+                <button type="button" class="pill" data-grade="8">8</button>
+                <button type="button" class="pill" data-grade="9">9</button>
+                <button type="button" class="pill" data-grade="10">10</button>
+                <button type="button" class="pill" data-grade="11">11</button>
+              </div>
+            </div>
+            <div class="content-panel">
+              <p class="section-kicker">★ ИЗБРАННЫЕ</p>
+              <div id="fav-list"></div>
+              <div class="sep"></div>
+              <p class="section-kicker" style="color:#111;letter-spacing:0.1em;">▶ ВСЕ ПРЕДМЕТЫ</p>
+              <div id="sub-rows"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ——— AI / Заметки ——— -->
+      <div class="view view-main" data-tab="notes">
+        <div class="phone">
+          <div class="notes-top"></div>
+          <div class="notes-head">
+            <h1>AI-Агент</h1>
+            <div class="head-right">
+              <i data-lucide="sparkles"></i>
+              <span class="head-sub">AI помощник</span>
+            </div>
+          </div>
+          <div class="screen-body">
+            <div class="bubble-grid" id="notes-grid"></div>
+            <div class="notes-dock-wrap">
+              <div class="dock">
+                <div class="dock-row">
+                  <i data-lucide="camera"></i>
+                  <div class="dock-text">
+                    <strong>Камера</strong>
+                    <span>Скан задания</span>
+                  </div>
+                  <i data-lucide="chevron-up" class="chev"></i>
+                </div>
+                <p class="dock-hint" id="dock-hint"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ——— Профиль ——— -->
+      <div class="view view-main" data-tab="profile">
+        <div class="phone">
+          <header class="status-bar status-bar--light">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <i data-lucide="signal"></i>
+              <i data-lucide="wifi"></i>
+              <i data-lucide="battery-medium" class="icon-battery"></i>
+            </div>
+          </header>
+          <div class="screen-body">
+            <div class="page-header">
+              <span class="kicker">★ ПРОФИЛЬ</span>
+              <h1 class="page-title" style="font-size:34px;">Аккаунт</h1>
+            </div>
+            <div class="profile-card">
+              <div class="avatar"><i data-lucide="user"></i></div>
+              <h2>Ученик Shanks</h2>
+              <p>Здесь скоро появятся настройки, подписка и статистика — интерфейс собран по макетам V8 из Pencil.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Нижняя навигация -->
+      <div class="bottom-wrap">
+        <nav class="bottom-pill" aria-label="Основные разделы">
+          <button type="button" class="nav-seg nav-seg--active" data-nav="home" aria-current="page">
+            <i data-lucide="house"></i>
+            <span>ГЛАВНАЯ</span>
+          </button>
+          <button type="button" class="nav-seg" data-nav="subjects" id="tab-subjects">
+            <i data-lucide="book-open"></i>
+            <span>ПРЕДМЕТЫ</span>
+          </button>
+          <button type="button" class="nav-seg" data-nav="notes" id="tab-notes">
+            <i data-lucide="brain"></i>
+            <span>ЗАМЕТКИ</span>
+          </button>
+          <button type="button" class="nav-seg" data-nav="profile">
+            <i data-lucide="user"></i>
+            <span>ПРОФИЛЬ</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Стек: деталь предмета -->
+    <div class="stack-layer stack-screen" id="stack-subject-detail" data-stack="subject-detail">
+      <div class="phone">
+        <div class="sd-top-spacer"></div>
+        <div class="screen-body">
+          <div class="card-hero pad-h">
+            <div class="back-row">
+              <button type="button" class="btn-back" id="sd-back" aria-label="Назад">
+                <i data-lucide="chevron-left"></i>
+              </button>
+            </div>
+            <span class="kicker" id="sd-class">★ КЛАСС 7</span>
+            <h1 class="hero-title" id="sd-title">Математика</h1>
+            <div class="hero-track"><div class="hero-fill" id="sd-hero-fill" style="width:35%"></div></div>
+            <p class="hero-sub" id="sd-pct-label">35% изучено</p>
+          </div>
+          <div class="topic-list" id="sd-topics"></div>
+        </div>
+        <footer class="sd-footer">
+          <button type="button" class="btn-primary-wide">
+            <i data-lucide="search"></i>
+            Поиск по темам
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Стек: тема -->
+    <div class="stack-layer stack-screen stack-screen--topic" id="stack-topic" data-stack="topic">
+      <div class="phone">
+        <div class="v8StatusPad" style="height:52px;"></div>
+        <div class="screen-body pad-topic">
+          <div class="tp-header">
+            <div class="tp-nav">
+              <button type="button" class="btn-back" id="tp-back" aria-label="Назад к предмету">
+                <i data-lucide="chevron-left"></i>
+              </button>
+              <h2 id="tp-title">Алгебраические выражения</h2>
+            </div>
+            <p class="tp-meta" id="tp-meta">Математика · 7 класс</p>
+            <div class="hero-track tp-pb"><div class="hero-fill" id="tp-bar" style="width:63%"></div></div>
+          </div>
+          <div class="mode-row">
+            <div class="mode-tile mode-tile--on">
+              <i data-lucide="book-open"></i>
+              <span class="m-label">Теория</span>
+              <span class="m-sub">3/7</span>
+            </div>
+            <div class="mode-tile">
+              <i data-lucide="pencil"></i>
+              <span class="m-label">Практика</span>
+              <span class="m-sub">0/12</span>
+            </div>
+            <div class="mode-tile mode-tile--dim">
+              <i data-lucide="lock"></i>
+              <span class="m-label">Тест</span>
+              <span class="m-sub">Закрыт</span>
+            </div>
+          </div>
+          <div class="theory-list">
+            <div class="t-section" id="theory-section-label">Теория</div>
+            <div id="theory-list-body"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="js/data.js?v=shanks-v8"></script>
+  <script src="js/app.js?v=shanks-v8"></script>
+</body>
+</html>
