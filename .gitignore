@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 
+.cursor/
+
 # IDE
 .vscode/
 .idea/
@@ -16,6 +18,17 @@ Thumbs.db
 # Temporary
 *.tmp
 .cache/
+
+# MCP / одноразовые артефакты редактора (не коммитить)
+mcp-*.json
+replace-*.json
+replace-one-*.json
+split*.json
+min-*.json
+payload-fix*.json
+_mcp*.json
+temp-*
+t1.txt
 
 # Environment
 .env

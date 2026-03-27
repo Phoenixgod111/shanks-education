@@ -1,28 +1,6 @@
-# Shanks Education
+# Shanks
 
-**Образовательное приложение для школьников — PWA для Android и браузера**
-
----
-
-## Описание
-
-Приложение для изучения школьных предметов с интерфейсом в стиле iOS:
-
-- **Главная** — прогресс, ежедневные челленджи, QUIZ
-- **Предметы** — 11 предметов, выбор класса (5–11)
-- **Темы и уроки** — теория, практика, тесты
-- **AI Заметки** — скоро
-- **Профиль** — статистика, достижения, Premium
-
----
-
-## Установка на Android
-
-1. Откройте в Chrome: **https://phoenixgod111.github.io/shanks-education/**
-2. Меню (⋮) → **«Добавить на главный экран»**
-3. Готово — приложение установлено как PWA
-
----
+**PWA для школьников** — интерфейс V8 (Moon / SHARP / Editorial Navy) по макетам Pencil: главная с прогрессом, предметы, карточка темы, AI-заметки, профиль.
 
 ## Локальный запуск
 
@@ -32,37 +10,26 @@ python -m http.server 8000
 
 Откройте http://localhost:8000
 
----
-
-## Структура проекта
+## Структура
 
 ```
 Shanks/
 ├── index.html
-├── manifest.json          # PWA манифест
-├── icon.svg               # Иконка приложения
-├── css/styles-apple.css
+├── manifest.json
+├── icon.svg
+├── css/app.css
 ├── js/
-│   ├── app.js
-│   ├── platform-api.js    # API для PWA (вибрация, popup)
-│   ├── subject-manager.js
-│   ├── navigation.js
-│   ├── content-generator.js
-│   ├── data.js
-│   └── subscription-manager.js
-└── subjects/
+│   ├── app.js      # навигация и экраны
+│   └── data.js     # демо-данные (можно заменить на API/JSON)
+└── design/         # .pen и экспорты макетов (опционально)
 ```
-
----
 
 ## Технологии
 
-- Vanilla JavaScript
-- CSS3 (Apple-style)
-- PWA (Progressive Web App)
-- LocalStorage
-- Material Icons
+- HTML / CSS / ES-модули не используются — один IIFE в `app.js`
+- Иконки: [Lucide](https://lucide.dev) (CDN)
+- Шрифт: Inter (Google Fonts)
 
----
+## PWA
 
-**Версия:** 3.0 (Android PWA)
+В Chrome: меню → «Установить приложение» / «Добавить на главный экран».

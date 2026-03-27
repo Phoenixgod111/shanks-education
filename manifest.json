@@ -4,8 +4,8 @@
   "description": "Образовательное приложение для школьников",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007AFF",
+  "background_color": "#f7f5ef",
+  "theme_color": "#ea580c",
   "orientation": "portrait",
   "icons": [
     {
