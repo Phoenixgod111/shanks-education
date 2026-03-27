@@ -254,6 +254,82 @@
         { kind: "todo", title: "Упрощение выражений", sub: "Ещё не начали · 4 мин" },
       ],
     },
+    /** Navy V8: полноэкранные Practice / Test (easy · med · hard) */
+    activityPracticeByDiff: {
+      easy: {
+        progressPct: 45,
+        progressCaption: "45% · 2/12",
+        sectionTitle: "Задачи · лёгкий уровень",
+        tasks: [
+          { title: "Упростить: 2a + 3a − a", sub: "Алгебра · 3 мин", done: false },
+          { title: "Подставить число в выражение", sub: "База · 4 мин", done: true },
+          { title: "Раскрыть скобки: 3(x + 2)", sub: "Тренировка · 5 мин", done: false },
+        ],
+        cta: "Решить задачу",
+      },
+      med: {
+        progressPct: 72,
+        progressCaption: "72% · 3/7",
+        sectionTitle: "Задачи · средний уровень",
+        tasks: [
+          { title: "Тождественные преобразования", sub: "Типовая · 6 мин", done: true },
+          { title: "Доказать равенство двух выражений", sub: "Логика · 10 мин", done: false },
+          { title: "Параметр в выражении", sub: "Углубление · 12 мин", done: false },
+        ],
+        cta: "Решить задачу",
+      },
+      hard: {
+        progressPct: 38,
+        progressCaption: "38% · 2/9",
+        sectionTitle: "Задачи · тяжёлый уровень",
+        tasks: [
+          { title: "Симметрия и вынесение множителя", sub: "Олимп · 15 мин", done: false },
+          { title: "Две переменные, сократить дробь", sub: "Комбо · 18 мин", done: false },
+        ],
+        cta: "Решить задачу",
+        premium: {
+          title: "Режим Premium",
+          subline: "Разбор разборов, безлимит подсказок и тренажёр ошибок.",
+          cta: "Узнать больше",
+        },
+      },
+    },
+    activityTestByDiff: {
+      easy: {
+        progressPct: 15,
+        progressCaption: "15% · тесты",
+        sectionTitle: "Варианты · лёгкий уровень",
+        tests: [
+          { title: "Быстрый тест: выражения", sub: "8 вопросов · ~5 мин", pct: 0, badge: "Новый" },
+          { title: "Повторение §1", sub: "10 вопросов · ~6 мин", pct: 40, badge: null },
+          { title: "Мини-кейс «магазин»", sub: "6 вопросов · ~4 мин", pct: 100, badge: "Готово" },
+        ],
+        cta: "Начать тест",
+      },
+      med: {
+        progressPct: 48,
+        progressCaption: "48% · тесты",
+        sectionTitle: "Варианты · средний уровень",
+        tests: [
+          { title: "Контроль №2: выражения и скобки", sub: "14 вопросов · ~12 мин", pct: 25, badge: null },
+          { title: "Тренировка ЕГЭ-стиль (упрощённо)", sub: "12 вопросов · ~15 мин", pct: 0, badge: "Новый" },
+          { title: "Ошибки учеников — разбор", sub: "10 вопросов · ~10 мин", pct: 80, badge: null },
+        ],
+        cta: "Продолжить тест",
+      },
+      hard: {
+        progressPct: 62,
+        progressCaption: "62% · тесты",
+        sectionTitle: "Варианты · тяжёлый уровень",
+        tests: [
+          { title: "Итоговый тест по теме", sub: "18 вопросов · ~22 мин", pct: 0, locked: true },
+          { title: "Олимпиадный блок", sub: "8 вопросов · ~20 мин", pct: 0, locked: true },
+          { title: "Промежуточный чек", sub: "12 вопросов · ~14 мин", pct: 55, locked: false },
+        ],
+        cta: "Получить доступ",
+        ctaHint: "Откроется после прохождения среднего блока (демо).",
+      },
+    },
     notes: {
       bubbles: [
         { id: "m7", subject: "Математика", grade: "7 класс", icon: "calculator" },

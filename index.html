@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20250330" />
+  <link rel="stylesheet" href="css/app.css?v=20250331" />
 </head>
 <body>
   <div id="app">
@@ -214,16 +214,66 @@
               <span class="m-label">Практика</span>
               <span class="m-sub">0/12</span>
             </button>
-            <button type="button" class="mode-tile mode-tile--dim" data-mode="test" role="tab" id="tab-mode-test" aria-selected="false">
-              <i data-lucide="lock"></i>
+            <button type="button" class="mode-tile" data-mode="test" role="tab" id="tab-mode-test" aria-selected="false">
+              <i data-lucide="clipboard-check"></i>
               <span class="m-label">Тест</span>
-              <span class="m-sub">Закрыт</span>
+              <span class="m-sub">Доступен</span>
             </button>
           </div>
-          <div class="theory-list">
+          <div class="theory-list topic-theory-panel">
             <div class="t-section" id="theory-section-label">Теория</div>
             <div id="theory-list-body"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Полноэкран: Практика / Тест — Navy V8 (easy / med / hard) -->
+    <div
+      class="stack-layer stack-screen stack-activity"
+      id="stack-activity"
+      data-stack="activity"
+      data-view="practice"
+      data-diff="med"
+    >
+      <div class="phone phone--navy-activity">
+        <div class="screen-body screen-body--activity">
+          <header class="act-top">
+            <button type="button" class="act-back" id="act-back" aria-label="Назад к теме">
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <div class="act-head-main">
+              <h2 class="act-title" id="act-title">Тема</h2>
+              <p class="act-meta" id="act-meta">Предмет · класс</p>
+              <div class="act-progress-line">
+                <div class="act-progress-track">
+                  <div class="act-progress-fill" id="act-progress-fill" style="width: 0%"></div>
+                </div>
+                <span class="act-pct-cap" id="act-pct-label">0% · 0/0</span>
+              </div>
+            </div>
+          </header>
+
+          <div class="act-main-tabs" id="act-main-tabs" role="tablist" aria-label="Режим">
+            <button type="button" class="act-tab" data-act-tab="theory" id="act-tab-theory">
+              Теория
+            </button>
+            <button type="button" class="act-tab" data-act-tab="practice" id="act-tab-practice">
+              Практика
+            </button>
+            <button type="button" class="act-tab" data-act-tab="test" id="act-tab-test">
+              Тест
+            </button>
+          </div>
+
+          <div class="act-diff-wrap">
+            <p class="act-diff-kicker" id="act-diff-kicker">Сложность</p>
+            <div class="act-diff-row" id="act-diff-row" role="tablist" aria-label="Сложность"></div>
+          </div>
+
+          <div class="act-scroll" id="act-body"></div>
+
+          <footer class="act-footer" id="act-footer"></footer>
         </div>
       </div>
     </div>
@@ -232,7 +282,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20250330"></script>
-  <script src="js/app.js?v=20250330"></script>
+  <script src="js/data.js?v=20250331"></script>
+  <script src="js/app.js?v=20250331"></script>
 </body>
 </html>

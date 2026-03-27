@@ -18,6 +18,10 @@
     stack: null,
     subjectKey: "math",
     topicMode: "theory",
+    activityView: "practice",
+    practiceDiff: "med",
+    testDiff: "easy",
+    topicTestUnlocked: true,
   };
 
   let prefs = { favoritesByGrade: {}, initialized: false };
@@ -143,9 +147,16 @@
     filterTopics("");
   }
 
+  function closeActivity() {
+    $("#stack-activity")?.classList.remove("is-open");
+    if (state.stack === "activity") state.stack = "topic";
+    iconsRefresh();
+  }
+
   function openStack(name) {
     state.stack = name;
     $("#app").classList.add("stack-open");
+    $("#stack-activity")?.classList.remove("is-open");
     if (name === "subject-detail") {
       $("#stack-topic").classList.remove("is-open");
       $("#stack-subject-detail").classList.add("is-open");
@@ -155,6 +166,7 @@
   }
 
   function openTopicOverDetail() {
+    closeActivity();
     state.stack = "topic";
     $("#app").classList.add("stack-open");
     $("#stack-subject-detail").classList.add("is-open");
@@ -163,8 +175,169 @@
   }
 
   function closeTopic() {
+    closeActivity();
     $("#stack-topic").classList.remove("is-open");
     state.stack = "subject-detail";
+    iconsRefresh();
+  }
+
+  function getPracticePack(diff) {
+    const m = D.activityPracticeByDiff || {};
+    return m[diff] || m.med || {};
+  }
+
+  function getTestPack(diff) {
+    const m = D.activityTestByDiff || {};
+    return m[diff] || m.easy || {};
+  }
+
+  function openActivity(view, diff) {
+    state.activityView = view;
+    if (view === "practice") {
+      if (diff) state.practiceDiff = diff;
+    } else {
+      if (diff) state.testDiff = diff;
+    }
+    state.stack = "activity";
+    $("#app").classList.add("stack-open");
+    $("#stack-subject-detail").classList.add("is-open");
+    $("#stack-topic").classList.add("is-open");
+    $("#stack-activity").classList.add("is-open");
+    renderActivity();
+    iconsRefresh();
+  }
+
+  function renderActivity() {
+    const root = $("#stack-activity");
+    if (!root) return;
+    const view = state.activityView;
+    const diff = view === "practice" ? state.practiceDiff : state.testDiff;
+    root.dataset.view = view;
+    root.dataset.diff = diff;
+
+    const tTitle = $("#tp-title");
+    const tMeta = $("#tp-meta");
+    const titleEl = $("#act-title");
+    const metaEl = $("#act-meta");
+    if (titleEl) titleEl.textContent = tTitle?.textContent || D.topic?.title || "Тема";
+    if (metaEl) metaEl.textContent = tMeta?.textContent || D.topic?.subjectLine || "";
+
+    const pack = view === "practice" ? getPracticePack(diff) : getTestPack(diff);
+    const pctEl = $("#act-pct-label");
+    const fillEl = $("#act-progress-fill");
+    if (pctEl) pctEl.textContent = pack.progressCaption || "";
+    if (fillEl) fillEl.style.width = `${Number(pack.progressPct) || 0}%`;
+
+    const accentPractice = { easy: "#22c55e", med: "#f59e0b", hard: "#7c3aed" };
+    const accentTest = { easy: "#38bdf8", med: "#38bdf8", hard: "#a855f7" };
+    const acc = view === "practice" ? accentPractice[diff] : accentTest[diff];
+    root.style.setProperty("--act-accent", acc || "#38bdf8");
+
+    $$("#act-main-tabs .act-tab").forEach((btn) => {
+      const t = btn.dataset.actTab;
+      const on =
+        (t === "practice" && view === "practice") || (t === "test" && view === "test");
+      btn.classList.toggle("act-tab--on", on);
+    });
+
+    const kicker = $("#act-diff-kicker");
+    if (kicker)
+      kicker.textContent =
+        view === "practice" ? "Сложность практики" : "Сложность теста";
+
+    const row = $("#act-diff-row");
+    if (row) {
+      const keys = ["easy", "med", "hard"];
+      const Lp = { easy: "Лёгкая", med: "Средняя", hard: "Тяжёлая" };
+      const Lt = { easy: "Лёгкий", med: "Средний", hard: "Тяжёлый" };
+      const L = view === "practice" ? Lp : Lt;
+      row.innerHTML = keys
+        .map(
+          (d) =>
+            `<button type="button" class="act-diff-pill${d === diff ? " act-diff-pill--on" : ""}" data-act-diff="${d}">${L[d]}</button>`
+        )
+        .join("");
+    }
+
+    const body = $("#act-body");
+    const foot = $("#act-footer");
+    if (body) body.innerHTML = "";
+    if (foot) foot.innerHTML = "";
+
+    if (view === "practice") {
+      const sec = document.createElement("p");
+      sec.className = "act-section-title";
+      sec.textContent = pack.sectionTitle || "Задачи";
+      body.appendChild(sec);
+      (pack.tasks || []).forEach((task) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "act-task-card";
+        card.innerHTML = `
+          <div class="act-task-top">
+            <span class="act-task-dot${task.done ? " act-task-dot--done" : ""}" aria-hidden="true"></span>
+            <div class="act-task-text">
+              <strong>${task.title}</strong>
+              <span>${task.sub}</span>
+            </div>
+            <i data-lucide="chevron-right" class="act-task-chev"></i>
+          </div>`;
+        card.addEventListener("click", () =>
+          toast("Решение задачи — в полной версии приложения.")
+        );
+        body.appendChild(card);
+      });
+      if (pack.premium) {
+        const pr = document.createElement("div");
+        pr.className = "act-premium";
+        pr.innerHTML = `
+          <div class="act-premium-copy">
+            <strong>${pack.premium.title}</strong>
+            <p>${pack.premium.subline}</p>
+          </div>
+          <button type="button" class="act-premium-cta" data-act-premium>${pack.premium.cta}</button>`;
+        body.appendChild(pr);
+      }
+      foot.innerHTML = `<button type="button" class="act-cta-btn" id="act-cta">${pack.cta || "Далее"}</button>`;
+    } else {
+      const sec = document.createElement("p");
+      sec.className = "act-section-title";
+      sec.textContent = pack.sectionTitle || "Тесты";
+      body.appendChild(sec);
+      (pack.tests || []).forEach((te) => {
+        const card = document.createElement("div");
+        card.className = "act-test-card" + (te.locked ? " act-test-card--locked" : "");
+        let badgeHtml = "";
+        if (te.locked) {
+          badgeHtml = `<span class="act-badge act-badge--lock"><i data-lucide="lock"></i> Закрыто</span>`;
+        } else if (te.badge) {
+          badgeHtml = `<span class="act-badge">${te.badge}</span>`;
+        }
+        card.innerHTML = `
+          <div class="act-test-top">
+            <div>
+              <strong>${te.title}</strong>
+              <span>${te.sub}</span>
+            </div>
+            ${badgeHtml}
+          </div>
+          <div class="act-test-track"><div class="act-test-fill" style="width:${te.locked ? 0 : te.pct}%"></div></div>
+          ${
+            !te.locked
+              ? `<button type="button" class="act-test-go" data-test-open>Открыть</button>`
+              : ""
+          }`;
+        const go = card.querySelector("[data-test-open]");
+        go?.addEventListener("click", () => toast("Тест откроется в полной версии."));
+        body.appendChild(card);
+      });
+      if (pack.ctaHint) {
+        foot.innerHTML = `<p class="act-footer-hint">${pack.ctaHint}</p><button type="button" class="act-cta-btn act-cta-btn--ghost" id="act-cta">${pack.cta}</button>`;
+      } else {
+        foot.innerHTML = `<button type="button" class="act-cta-btn" id="act-cta">${pack.cta || "Начать"}</button>`;
+      }
+    }
+
     iconsRefresh();
   }
 
@@ -350,15 +523,24 @@
 
   function syncModeTiles() {
     const mode = state.topicMode;
+    const unlocked = state.topicTestUnlocked;
     $$("#topic-mode-row .mode-tile").forEach((btn) => {
       const m = btn.dataset.mode;
       const isTest = m === "test";
       const on = !isTest && m === mode;
       btn.classList.toggle("mode-tile--on", on);
       btn.setAttribute("aria-selected", on ? "true" : "false");
-      if (isTest) btn.classList.add("mode-tile--dim");
-      else btn.classList.remove("mode-tile--dim");
+      if (isTest) {
+        btn.classList.toggle("mode-tile--dim", !unlocked);
+        const ico = btn.querySelector("[data-lucide]");
+        if (ico) ico.setAttribute("data-lucide", unlocked ? "clipboard-check" : "lock");
+        const sub = btn.querySelector(".m-sub");
+        if (sub) sub.textContent = unlocked ? "Доступен" : "Закрыт";
+      } else {
+        btn.classList.remove("mode-tile--dim");
+      }
     });
+    iconsRefresh();
   }
 
   function appendTheoryItems(list, T) {
@@ -404,47 +586,16 @@
 
   function syncTopicBody() {
     const T = D.topic;
-    const mode = state.topicMode;
     const label = $("#theory-section-label");
     const list = $("#theory-list-body");
     list.innerHTML = "";
-
-    if (mode === "theory") {
-      label.textContent = "Теория";
-      appendTheoryItems(list, T);
-    } else if (mode === "practice") {
-      label.textContent = "Задачи";
-      (T.practice || []).forEach((item) => {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = "theory-item";
-        row.innerHTML = `
-          <i data-lucide="pencil"></i>
-          <div class="theory-body">
-            <strong>${item.title}</strong>
-            <span>${item.sub}</span>
-          </div>`;
-        row.addEventListener("click", () =>
-          toast("Задача: следующий шаг — отдельный экран решения.")
-        );
-        list.appendChild(row);
-      });
-    } else if (mode === "test") {
-      label.textContent = "Тест";
-      const row = document.createElement("div");
-      row.className = "theory-item theory-muted";
-      row.innerHTML = `
-        <span class="accent-bar"></span>
-        <div class="theory-body tm-body">
-          <strong>Тест закрыт</strong>
-          <span>Заверши практику — и тест разблокируется</span>
-        </div>`;
-      list.appendChild(row);
-    }
+    if (label) label.textContent = "Теория";
+    appendTheoryItems(list, T);
     iconsRefresh();
   }
 
   function renderTopic(topic, sd) {
+    closeActivity();
     const T = D.topic;
     const detail = sd || getSubjectDetail(state.subjectKey);
     $("#tp-title").textContent = topic?.title || T.title;
@@ -568,13 +719,76 @@
     const modeBtn = e.target.closest("#topic-mode-row .mode-tile[data-mode]");
     if (modeBtn) {
       const m = modeBtn.dataset.mode;
-      if (m === "test") {
-        toast("Тест закрыт: пройди практику по теме.");
+      if (m === "theory") {
+        state.topicMode = "theory";
+        syncModeTiles();
+        syncTopicBody();
         return;
       }
-      state.topicMode = m;
-      syncModeTiles();
-      syncTopicBody();
+      if (m === "practice") {
+        state.topicMode = "theory";
+        syncModeTiles();
+        syncTopicBody();
+        openActivity("practice", state.practiceDiff || "med");
+        return;
+      }
+      if (m === "test") {
+        if (!state.topicTestUnlocked) {
+          toast("Тест закрыт: пройди практику по теме.");
+          return;
+        }
+        state.topicMode = "theory";
+        syncModeTiles();
+        syncTopicBody();
+        openActivity("test", state.testDiff || "easy");
+        return;
+      }
+    }
+
+    if (e.target.closest("#act-back")) {
+      closeActivity();
+      return;
+    }
+
+    const actTab = e.target.closest("#act-main-tabs [data-act-tab]");
+    if (actTab) {
+      const t = actTab.dataset.actTab;
+      if (t === "theory") {
+        closeActivity();
+        return;
+      }
+      if (t === "practice") {
+        state.activityView = "practice";
+        renderActivity();
+        return;
+      }
+      if (t === "test") {
+        state.activityView = "test";
+        renderActivity();
+        return;
+      }
+    }
+
+    const diffBtn = e.target.closest("#act-diff-row [data-act-diff]");
+    if (diffBtn) {
+      const d = diffBtn.dataset.actDiff;
+      if (state.activityView === "practice") state.practiceDiff = d;
+      else state.testDiff = d;
+      renderActivity();
+      return;
+    }
+
+    if (e.target.closest("[data-act-premium]")) {
+      toast("Premium: демо — расскажем о подписке позже.");
+      return;
+    }
+
+    if (e.target.closest("#act-cta")) {
+      toast(
+        state.activityView === "practice"
+          ? "Открываем задачу…"
+          : "Доступ к тестам (демо)."
+      );
       return;
     }
   }
