@@ -1,4 +1,4 @@
-/* Shanks V8 — токены из design-shanks/subjects.pen (Главная Moon, V8 — SHARP, Navy) */
+/* Shanks V8 — сверка с design-shanks/subjects.pen: Moon, V8 SHARP, Subject Detail, Topic 1JGxM, Practice/Test Med, Notes */
 
 :root {
   --bg: #f7f5ef;
@@ -1526,77 +1526,118 @@ a {
   box-shadow: 0 0 0 2px var(--accent);
 }
 
-/* ——— Topic V8 · Editorial Navy (тёмный экран темы) ——— */
+/* ——— Topic V8 — Editorial Navy (design-shanks 1JGxM: светлая сцена) ——— */
 .stack-screen--topic .phone {
-  background: #0f172a;
-  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.12);
+  background: #f7f5ef;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .stack-screen--topic .screen-body.pad-topic {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #f7f5ef;
+  color: #111111;
   padding-bottom: calc(28px + var(--safe-bottom));
 }
 
 .stack-screen--topic .tp-header {
-  background: #1e293b;
-  border-color: #334155;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.stack-screen--topic .tp-nav .btn-back {
+  background: #111111;
+  border-radius: 8px;
+}
+
+.stack-screen--topic .tp-nav .btn-back svg {
+  stroke: #6b7280;
 }
 
 .stack-screen--topic .tp-nav h2 {
-  color: #f8fafc;
+  color: #111111;
   font-weight: 800;
+  font-size: 18px;
 }
 
 .stack-screen--topic .tp-meta {
-  color: #94a3b8;
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .stack-screen--topic .tp-pb .hero-track {
-  background: #334155;
+  background: #e5e7eb;
+  border-radius: 4px;
+  height: 8px;
 }
 
 .stack-screen--topic .tp-pb .hero-fill {
-  background: linear-gradient(90deg, #38bdf8, #22d3ee);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+  background: #ea580c;
+  box-shadow: none;
+  border-radius: 3px;
 }
 
 .stack-screen--topic .mode-row {
   padding: 0 0 10px;
 }
 
-.stack-screen--topic .mode-tile:not(.mode-tile--on) {
-  background: rgba(30, 41, 59, 0.75);
-  border: 1px solid #334155;
-  color: #cbd5e1;
+.stack-screen--topic .mode-tile {
+  min-height: 80px;
+  border-radius: 14px;
 }
 
-.stack-screen--topic .mode-tile:not(.mode-tile--on) svg {
-  stroke: #94a3b8;
+.stack-screen--topic .mode-tile:not(.mode-tile--on):not(.mode-tile--dim) {
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.stack-screen--topic .mode-tile:not(.mode-tile--on):not(.mode-tile--dim) svg {
+  stroke: #ea580c;
+}
+
+.stack-screen--topic .mode-tile:not(.mode-tile--on):not(.mode-tile--dim) .m-label {
+  font-weight: 600;
+}
+
+.stack-screen--topic .mode-tile:not(.mode-tile--on):not(.mode-tile--dim) .m-sub {
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .stack-screen--topic .mode-tile--on {
-  background: rgba(56, 189, 248, 0.12);
-  border: 1.5px solid #38bdf8;
-  color: #f0f9ff;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+  background: #1f2937;
+  border: none;
+  color: #f8fafc;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .stack-screen--topic .mode-tile--on svg {
-  stroke: #38bdf8;
+  stroke: #ea580c;
+}
+
+.stack-screen--topic .mode-tile--on .m-label {
+  font-weight: 700;
 }
 
 .stack-screen--topic .mode-tile--on .m-sub {
-  color: #7dd3fc;
+  color: #f8fafc;
+  font-weight: 600;
 }
 
 .stack-screen--topic .mode-tile--dim {
-  opacity: 0.55;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #9ca3af;
+  opacity: 1;
 }
 
+.stack-screen--topic .mode-tile--dim svg {
+  stroke: #ea580c;
+}
+
+.stack-screen--topic .mode-tile--dim .m-label,
 .stack-screen--topic .mode-tile--dim .m-sub {
-  color: #64748b;
+  color: #9ca3af;
 }
 
 .stack-screen--topic .theory-list {
@@ -1608,7 +1649,7 @@ a {
 }
 
 .stack-screen--topic .topic-theory-panel {
-  padding: 4px 0 0;
+  padding: 8px 0 16px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -1634,62 +1675,79 @@ a {
 }
 
 .stack-screen--topic .t-section {
-  color: #64748b;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 11px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 0 0 4px;
 }
 
 .stack-screen--topic .theory-item {
-  background: #1e293b;
-  border-color: #334155;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 16px 10px;
 }
 
 .stack-screen--topic .theory-item svg {
-  stroke: #38bdf8;
+  stroke: #ea580c;
 }
 
 .stack-screen--topic .theory-body strong {
-  color: #f1f5f9;
+  color: #111111;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .stack-screen--topic .theory-body span {
-  color: #94a3b8;
+  color: #4b5563;
+  font-size: 12px;
 }
 
 .stack-screen--topic .theory-item .check {
-  stroke: #34d399;
+  stroke: #22c55e;
 }
 
 .stack-screen--topic .theory-featured {
-  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-  border-color: #38bdf8;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  background: #111827;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.stack-screen--topic .theory-featured .tf-top strong {
+  color: #f8fafc;
 }
 
 .stack-screen--topic .badge-read {
-  color: #38bdf8;
+  color: #ea580c;
+  font-weight: 700;
 }
 
 .stack-screen--topic .tf-bar-track {
-  background: #334155;
+  background: #1f2937;
+  border-radius: 3px;
 }
 
 .stack-screen--topic .tf-bar-fill {
-  background: linear-gradient(90deg, #38bdf8, #22d3ee);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+  background: #ea580c;
+  box-shadow: 0 0 6px rgba(234, 88, 12, 0.35);
+  border-radius: 3px;
 }
 
 .stack-screen--topic .tm-body strong {
-  color: #94a3b8;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 15px;
 }
 
 .stack-screen--topic .tm-body span {
-  color: #64748b;
+  color: #9ca3af;
 }
 
 .stack-screen--topic .theory-muted .accent-bar {
-  background: #38bdf8;
+  background: #ea580c;
 }
 
 /* ——— Activity: Practice Med V8 — Navy (design-shanks #f7f5ef) ——— */
@@ -1897,6 +1955,24 @@ a {
 
 .act-diff-pill-v8--on.act-diff-pill-v8--hard .act-diff-lock {
   stroke: #ffffff;
+}
+
+/* Test Easy/Med — Navy: капсулы сложности ниже, как в pen (9p4Ge) */
+.stack-activity[data-view="test"] .act-diff-pill-v8 {
+  min-height: 34px;
+  border-radius: 17px;
+  font-size: 13px;
+}
+
+.stack-activity[data-view="test"] .act-diff-pill-v8:not(.act-diff-pill-v8--on) {
+  font-weight: 400;
+}
+
+.stack-activity[data-view="test"] .act-diff-pill-v8--on {
+  background: #111111;
+  border-color: #111111;
+  color: #f8fafc;
+  font-weight: 700;
 }
 
 .act-diff-lock {

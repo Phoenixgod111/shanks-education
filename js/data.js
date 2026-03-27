@@ -298,7 +298,7 @@
       easy: {
         progressPct: 15,
         progressCaption: "15% · тесты",
-        sectionTitle: "Варианты · лёгкий уровень",
+        sectionTitle: "Выбери тест",
         tests: [
           { title: "Быстрый тест: выражения", sub: "8 вопросов · ~5 мин", pct: 0, badge: "Новый" },
           { title: "Повторение §1", sub: "10 вопросов · ~6 мин", pct: 40, badge: null },
