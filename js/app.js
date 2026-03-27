@@ -1,3 +1,9 @@
+/**
+ * Shanks — навигация и действия.
+ * «5 агентов» (краткий консенсус): (1) маршруты предметов целостные,
+ * (2) таббар + стек без конфликтов, (3) явные active/aria состояния,
+ * (4) каждый CTA даёт отклик или переход, (5) жесты/клавиша «назад» — стек закрывается предсказуемо.
+ */
 (function () {
   "use strict";
 
@@ -10,21 +16,56 @@
     grade: D.defaultGrade || 5,
     stack: null,
     subjectKey: "math",
+    topicMode: "theory",
   };
+
+  let toastTimer = null;
 
   function iconsRefresh() {
     if (window.lucide) window.lucide.createIcons();
   }
 
+  function toast(msg) {
+    const el = $("#toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add("is-visible");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("is-visible"), 2600);
+  }
+
+  function routeSubjectKey(id) {
+    const R = D.subjectRoute || {};
+    return R[id] || id;
+  }
+
+  function getSubjectDetail(key) {
+    return D.subjectDetail?.[key] || D.subjectDetail?.math;
+  }
+
   function setTab(tab) {
+    closeStack();
     state.tab = tab;
     $$(".view-main").forEach((el) => el.classList.toggle("is-active", el.dataset.tab === tab));
     $$(".nav-seg").forEach((btn) => {
       const on = btn.dataset.nav === tab;
       btn.classList.toggle("nav-seg--active", on);
+      if (on) btn.setAttribute("aria-current", "page");
+      else btn.removeAttribute("aria-current");
     });
-    $("#app").classList.remove("stack-open");
+    if (tab === "subjects") renderSubjects();
+    if (tab === "notes") renderNotes();
     iconsRefresh();
+  }
+
+  function resetSearchUi() {
+    const sp = $("#sd-search-panel");
+    const inp = $("#sd-search-input");
+    const btn = $("#btn-sd-search");
+    if (sp) sp.hidden = true;
+    if (inp) inp.value = "";
+    if (btn) btn.classList.remove("is-active");
+    filterTopics("");
   }
 
   function openStack(name) {
@@ -33,6 +74,7 @@
     if (name === "subject-detail") {
       $("#stack-topic").classList.remove("is-open");
       $("#stack-subject-detail").classList.add("is-open");
+      resetSearchUi();
     }
     iconsRefresh();
   }
@@ -55,7 +97,42 @@
     state.stack = null;
     $("#app").classList.remove("stack-open");
     $$(".stack-layer").forEach((el) => el.classList.remove("is-open"));
+    resetSearchUi();
     iconsRefresh();
+  }
+
+  function toggleSearchPanel() {
+    const sp = $("#sd-search-panel");
+    const btn = $("#btn-sd-search");
+    if (!sp) return;
+    const next = sp.hidden;
+    sp.hidden = !next;
+    btn?.classList.toggle("is-active", next);
+    if (next) {
+      setTimeout(() => $("#sd-search-input")?.focus(), 80);
+    } else {
+      $("#sd-search-input").value = "";
+      filterTopics("");
+    }
+    iconsRefresh();
+  }
+
+  function filterTopics(q) {
+    const norm = (q || "").trim().toLowerCase();
+    $$("#sd-topics .topic-card").forEach((c) => {
+      const t = c.textContent.toLowerCase();
+      c.style.display = !norm || t.includes(norm) ? "" : "none";
+    });
+  }
+
+  function toggleRowFavorite(rowId) {
+    const rows = D.subjectsScreen?.rows;
+    if (!rows) return;
+    const r = rows.find((x) => x.id === rowId);
+    if (r) {
+      r.favorite = !r.favorite;
+      toast(r.favorite ? "В избранном" : "Убрано из избранного");
+    }
   }
 
   function renderHome() {
@@ -65,13 +142,16 @@
     $("#home-task-text").textContent = h.taskDay.title;
     $("#home-task-xp").textContent = h.taskDay.xp;
     $("#home-quiz-text").textContent = h.quiz.text;
-    $($("#home-quiz-btn").querySelector("span")).textContent = h.quiz.cta;
+    const span = $("#home-quiz-btn")?.querySelector("span");
+    if (span) span.textContent = h.quiz.cta;
 
     const list = $("#home-subj-list");
     list.innerHTML = "";
     h.subjects.forEach((s) => {
-      const row = document.createElement("div");
+      const row = document.createElement("button");
+      row.type = "button";
       row.className = "subj-row";
+      row.dataset.homeSubject = s.id;
       const muted = s.pct === 0;
       row.innerHTML = `
         <i data-lucide="${s.icon}" class="subj-ico"></i>
@@ -95,8 +175,10 @@
     const fav = $("#fav-list");
     fav.innerHTML = "";
     (D.subjectsScreen?.favorites || []).forEach((f) => {
-      const card = document.createElement("div");
-      card.className = "fav-card";
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "fav-card is-button";
+      card.dataset.openSubject = routeSubjectKey(f.id);
       card.innerHTML = `
         <div class="fav-inner">
           <div class="fav-left">
@@ -124,11 +206,14 @@
           <span class="sr-title">${r.name}</span>
         </div>
         <div class="sr-right">
-          <i data-lucide="heart" class="${r.favorite ? "ico-heart-fill" : "ico-heart"}"></i>
+          <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="В избранное">
+            <i data-lucide="heart" class="${r.favorite ? "ico-heart-fill" : "ico-heart"}"></i>
+          </span>
           <span class="sr-pct">${r.pct}%</span>
         </div>`;
-      el.addEventListener("click", () => {
-        state.subjectKey = r.name === "Физика" ? "math" : "math";
+      el.addEventListener("click", (ev) => {
+        if (ev.target.closest("[data-heart-toggle]")) return;
+        state.subjectKey = routeSubjectKey(r.id);
         renderSubjectDetail();
         openStack("subject-detail");
       });
@@ -137,8 +222,7 @@
   }
 
   function renderSubjectDetail() {
-    const key = state.subjectKey;
-    const sd = D.subjectDetail?.[key] || D.subjectDetail?.math;
+    const sd = getSubjectDetail(state.subjectKey);
     if (!sd) return;
     $("#sd-class").textContent = `★ ${sd.classLabel}`;
     $("#sd-title").textContent = sd.title;
@@ -158,26 +242,32 @@
         </div>
         <div class="tb-track"><div class="tb-fill" style="width:${t.pct}%"></div></div>`;
       card.addEventListener("click", () => {
-        renderTopic(t);
+        renderTopic(t, sd);
         openTopicOverDetail();
       });
       tl.appendChild(card);
     });
+    filterTopics($("#sd-search-input")?.value || "");
   }
 
-  function renderTopic(topic) {
-    const T = D.topic;
-    $("#tp-title").textContent = topic?.title || T.title;
-    $("#tp-meta").textContent = T.subjectLine;
-    $("#tp-bar").style.width = `${T.barWidthPct}%`;
+  function syncModeTiles() {
+    const mode = state.topicMode;
+    $$("#topic-mode-row .mode-tile").forEach((btn) => {
+      const m = btn.dataset.mode;
+      const isTest = m === "test";
+      const on = !isTest && m === mode;
+      btn.classList.toggle("mode-tile--on", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      if (isTest) btn.classList.add("mode-tile--dim");
+      else btn.classList.remove("mode-tile--dim");
+    });
+  }
 
-    const list = $("#theory-list-body");
-    list.innerHTML = "";
-    $("#theory-section-label").textContent = "Теория";
-
-    T.theory.forEach((item) => {
+  function appendTheoryItems(list, T) {
+    (T.theory || []).forEach((item) => {
       if (item.kind === "done") {
-        const row = document.createElement("div");
+        const row = document.createElement("button");
+        row.type = "button";
         row.className = "theory-item";
         row.innerHTML = `
           <i data-lucide="book-open"></i>
@@ -186,6 +276,7 @@
             <span>${item.sub}</span>
           </div>
           <i data-lucide="check" class="check"></i>`;
+        row.addEventListener("click", () => toast("Урок откроется в полной версии."));
         list.appendChild(row);
       } else if (item.kind === "current") {
         const row = document.createElement("div");
@@ -198,7 +289,8 @@
           <div class="tf-bar-track"><div class="tf-bar-fill" style="width:${item.readPct}%"></div></div>`;
         list.appendChild(row);
       } else {
-        const row = document.createElement("div");
+        const row = document.createElement("button");
+        row.type = "button";
         row.className = "theory-item theory-muted";
         row.innerHTML = `
           <span class="accent-bar"></span>
@@ -206,17 +298,74 @@
             <strong>${item.title}</strong>
             <span>${item.sub}</span>
           </div>`;
+        row.addEventListener("click", () => toast("Скоро можно будет начать урок."));
         list.appendChild(row);
       }
     });
+  }
+
+  function syncTopicBody() {
+    const T = D.topic;
+    const mode = state.topicMode;
+    const label = $("#theory-section-label");
+    const list = $("#theory-list-body");
+    list.innerHTML = "";
+
+    if (mode === "theory") {
+      label.textContent = "Теория";
+      appendTheoryItems(list, T);
+    } else if (mode === "practice") {
+      label.textContent = "Задачи";
+      (T.practice || []).forEach((item) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "theory-item";
+        row.innerHTML = `
+          <i data-lucide="pencil"></i>
+          <div class="theory-body">
+            <strong>${item.title}</strong>
+            <span>${item.sub}</span>
+          </div>`;
+        row.addEventListener("click", () =>
+          toast("Задача: следующий шаг — отдельный экран решения.")
+        );
+        list.appendChild(row);
+      });
+    } else if (mode === "test") {
+      label.textContent = "Тест";
+      const row = document.createElement("div");
+      row.className = "theory-item theory-muted";
+      row.innerHTML = `
+        <span class="accent-bar"></span>
+        <div class="theory-body tm-body">
+          <strong>Тест закрыт</strong>
+          <span>Заверши практику — и тест разблокируется</span>
+        </div>`;
+      list.appendChild(row);
+    }
+    iconsRefresh();
+  }
+
+  function renderTopic(topic, sd) {
+    const T = D.topic;
+    const detail = sd || getSubjectDetail(state.subjectKey);
+    $("#tp-title").textContent = topic?.title || T.title;
+    const subjTitle = detail?.title || "Предмет";
+    $("#tp-meta").textContent = `${subjTitle} · ${state.grade} класс`;
+    $("#tp-bar").style.width = `${T.barWidthPct}%`;
+    state.topicMode = "theory";
+    syncModeTiles();
+    syncTopicBody();
   }
 
   function renderNotes() {
     const grid = $("#notes-grid");
     grid.innerHTML = "";
     (D.notes?.bubbles || []).forEach((b) => {
-      const tile = document.createElement("div");
+      const tile = document.createElement("button");
+      tile.type = "button";
       tile.className = "bubble";
+      tile.dataset.bubbleSubject = b.subject;
       tile.innerHTML = `
         <div class="bubble-ico"><i data-lucide="${b.icon}"></i></div>
         <strong>${b.subject}</strong>
@@ -226,15 +375,125 @@
     const add = document.createElement("button");
     add.type = "button";
     add.className = "bubble bubble--cta";
+    add.dataset.newDialog = "1";
     add.innerHTML = `<i data-lucide="plus"></i><strong>Новый диалог</strong>`;
     grid.appendChild(add);
     $("#dock-hint").textContent = D.notes?.dock || "";
   }
 
+  function onAppClick(e) {
+    const app = $("#app");
+    if (!app?.contains(e.target)) return;
+
+    const nav = e.target.closest(".nav-seg");
+    if (nav && app.contains(nav)) {
+      const t = nav.dataset.nav;
+      if (t) {
+        e.preventDefault();
+        setTab(t);
+      }
+      return;
+    }
+
+    if (e.target.closest("#btn-home-challenge")) {
+      state.subjectKey = "math";
+      renderSubjectDetail();
+      setTab("subjects");
+      openStack("subject-detail");
+      toast((D.copy && D.copy.challenge) || "Открываем математику.");
+      return;
+    }
+
+    if (e.target.closest("#home-quiz-btn")) {
+      toast((D.copy && D.copy.quiz) || "QUIZ скоро.");
+      setTab("subjects");
+      return;
+    }
+
+    const hs = e.target.closest("[data-home-subject]");
+    if (hs) {
+      state.subjectKey = routeSubjectKey(hs.getAttribute("data-home-subject"));
+      renderSubjectDetail();
+      setTab("subjects");
+      openStack("subject-detail");
+      return;
+    }
+
+    const fav = e.target.closest(".fav-card[data-open-subject]");
+    if (fav) {
+      state.subjectKey = fav.dataset.openSubject;
+      renderSubjectDetail();
+      setTab("subjects");
+      openStack("subject-detail");
+      return;
+    }
+
+    const ht = e.target.closest("[data-heart-toggle]");
+    if (ht) {
+      e.preventDefault();
+      const row = ht.closest(".subject-row");
+      if (row?.dataset.subjectId) {
+        toggleRowFavorite(row.dataset.subjectId);
+        renderSubjects();
+        iconsRefresh();
+      }
+      return;
+    }
+
+    const bub = e.target.closest("#notes-grid .bubble[data-bubble-subject]");
+    if (bub) {
+      toast(`${bub.dataset.bubbleSubject}: ${(D.copy && D.copy.aiChat) || "Чат с AI."}`);
+      return;
+    }
+
+    if (e.target.closest(".bubble--cta[data-new-dialog]")) {
+      toast((D.copy && D.copy.aiChat) || "Новый диалог.");
+      return;
+    }
+
+    if (e.target.closest("#btn-profile-settings")) {
+      toast((D.copy && D.copy.settings) || "Настройки.");
+      return;
+    }
+
+    if (e.target.closest("#btn-dock-camera")) {
+      toast((D.copy && D.copy.camera) || "Камера.");
+      return;
+    }
+
+    if (e.target.closest("#btn-sd-search")) {
+      toggleSearchPanel();
+      return;
+    }
+
+    const modeBtn = e.target.closest("#topic-mode-row .mode-tile[data-mode]");
+    if (modeBtn) {
+      const m = modeBtn.dataset.mode;
+      if (m === "test") {
+        toast("Тест закрыт: пройди практику по теме.");
+        return;
+      }
+      state.topicMode = m;
+      syncModeTiles();
+      syncTopicBody();
+      return;
+    }
+  }
+
   function bind() {
-    $$(".nav-seg").forEach((btn) => {
-      btn.addEventListener("click", () => setTab(btn.dataset.nav));
+    $("#app").addEventListener("click", onAppClick);
+
+    $("#sd-search-input")?.addEventListener("input", (ev) => filterTopics(ev.target.value));
+    $("#sd-search-clear")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      const i = $("#sd-search-input");
+      if (i) i.value = "";
+      filterTopics("");
+      i?.focus();
     });
+
+    $("#sd-back").addEventListener("click", closeStack);
+    $("#tp-back").addEventListener("click", closeTopic);
 
     $$(".pill").forEach((p) => {
       p.addEventListener("click", () => {
@@ -244,15 +503,17 @@
       });
     });
 
-    $("#sd-back").addEventListener("click", closeStack);
-    $("#tp-back").addEventListener("click", closeTopic);
-
-    $("#tab-subjects").addEventListener("click", () => {
-      renderSubjects();
-    });
-
-    $("#tab-notes").addEventListener("click", () => {
-      renderNotes();
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const ht = document.activeElement?.closest?.("[data-heart-toggle]");
+      if (ht) {
+        const row = ht.closest(".subject-row");
+        if (row?.dataset.subjectId) {
+          toggleRowFavorite(row.dataset.subjectId);
+          renderSubjects();
+          iconsRefresh();
+        }
+      }
     });
   }
 
@@ -263,7 +524,7 @@
     renderHome();
     renderSubjects();
     renderSubjectDetail();
-    renderTopic(null);
+    renderTopic(null, getSubjectDetail(state.subjectKey));
     renderNotes();
     bind();
     setTab("home");

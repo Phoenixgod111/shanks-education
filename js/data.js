@@ -64,6 +64,17 @@ window.SHANKS_DATA = {
       { id: "hist2", name: "История", pct: 25, dot: "#9ca3af", favorite: true },
     ],
   },
+  /** По id строки предмета / id с главной → ключ деталки */
+  subjectRoute: {
+    math: "math",
+    lit: "lit",
+    phys: "phys",
+    hist: "hist",
+    lang: "lang",
+    rus: "rus",
+    chem: "chem",
+    hist2: "hist",
+  },
   subjectDetail: {
     math: {
       classLabel: "КЛАСС 7",
@@ -76,12 +87,73 @@ window.SHANKS_DATA = {
         { id: "t4", title: "Геометрия", pct: 90 },
       ],
     },
+    rus: {
+      classLabel: "КЛАСС 5",
+      title: "Русский язык",
+      heroPct: 45,
+      topics: [
+        { id: "r1", title: "Лексика и фразеология", pct: 40 },
+        { id: "r2", title: "Синтаксис", pct: 55 },
+        { id: "r3", title: "Сочинение", pct: 20 },
+      ],
+    },
+    phys: {
+      classLabel: "КЛАСС 8",
+      title: "Физика",
+      heroPct: 30,
+      topics: [
+        { id: "p1", title: "Механика", pct: 35 },
+        { id: "p2", title: "Термодинамика", pct: 15 },
+        { id: "p3", title: "Электричество", pct: 10 },
+      ],
+    },
+    chem: {
+      classLabel: "КЛАСС 8",
+      title: "Химия",
+      heroPct: 60,
+      topics: [
+        { id: "c1", title: "Периодическая таблица", pct: 70 },
+        { id: "c2", title: "Реакции", pct: 50 },
+      ],
+    },
+    hist: {
+      classLabel: "КЛАСС 9",
+      title: "История",
+      heroPct: 25,
+      topics: [
+        { id: "h1", title: "Древний мир", pct: 30 },
+        { id: "h2", title: "Средневековье", pct: 20 },
+      ],
+    },
+    lit: {
+      classLabel: "КЛАСС 7",
+      title: "Литература",
+      heroPct: 12,
+      topics: [
+        { id: "l1", title: "Лирика XIX века", pct: 10 },
+        { id: "l2", title: "Роман", pct: 5 },
+      ],
+    },
+    lang: {
+      classLabel: "КЛАСС 7",
+      title: "Английский язык",
+      heroPct: 8,
+      topics: [
+        { id: "g1", title: "Present Simple", pct: 25 },
+        { id: "g2", title: "Местоимения", pct: 15 },
+      ],
+    },
   },
   topic: {
     title: "Алгебраические выражения",
     subjectLine: "Математика · 7 класс",
     progressPct: 72,
     barWidthPct: 63,
+    practice: [
+      { title: "Задача 1: упростить выражение", sub: "Лёгкая · 3 мин" },
+      { title: "Задача 2: подставить значение", sub: "Средняя · 5 мин" },
+      { title: "Задача 3: доказать тождество", sub: "Сложная · 10 мин" },
+    ],
     theory: [
       {
         kind: "done",
@@ -109,5 +181,13 @@ window.SHANKS_DATA = {
     ],
     dock:
       "Загрузи фото или сканируй задание — ИИ-агент объяснит ход решения и поможет дойти до ответа.",
+  },
+  /** Плейсхолдеры для CTA без бэкенда */
+  copy: {
+    challenge: "Челлендж дня: открываем практику по математике.",
+    quiz: "Режим QUIZ скоро будет с таймером и вариантами ответов.",
+    aiChat: "Диалог с AI-агентом подключим к API позже.",
+    camera: "Камера: сканирование задания — в следующей версии.",
+    settings: "Настройки профиля появятся здесь.",
   },
 };

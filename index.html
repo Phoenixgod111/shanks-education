@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20250327" />
+  <link rel="stylesheet" href="css/app.css?v=20250329" />
 </head>
 <body>
   <div id="app">
@@ -23,14 +23,6 @@
       <!-- ——— Главная ——— -->
       <div class="view view-main is-active" data-tab="home">
         <div class="phone">
-          <header class="status-bar status-bar--light">
-            <span class="status-time">9:41</span>
-            <div class="status-icons">
-              <i data-lucide="signal"></i>
-              <i data-lucide="wifi"></i>
-              <i data-lucide="battery-medium" class="icon-battery"></i>
-            </div>
-          </header>
           <div class="screen-body">
             <div class="card-progress-wrap">
               <div class="cp-header">
@@ -53,7 +45,7 @@
                   <span class="pill-xp" id="home-task-xp">+50 XP</span>
                 </div>
                 <h3 id="home-task-text">Реши 5 задач по алгебре и получи +50 XP</h3>
-                <button type="button" class="btn-light">Начать челлендж →</button>
+                <button type="button" class="btn-light" id="btn-home-challenge">Начать челлендж →</button>
               </div>
               <div class="card-orange">
                 <div class="quiz-head">
@@ -71,14 +63,6 @@
       <!-- ——— Предметы ——— -->
       <div class="view view-main" data-tab="subjects">
         <div class="phone">
-          <header class="status-bar status-bar--light">
-            <span class="status-time">9:41</span>
-            <div class="status-icons">
-              <i data-lucide="signal"></i>
-              <i data-lucide="wifi"></i>
-              <i data-lucide="battery-medium" class="icon-battery"></i>
-            </div>
-          </header>
           <div class="screen-body">
             <div class="page-header">
               <span class="kicker" id="sub-grade-kicker">★ КЛАСС 5</span>
@@ -107,7 +91,6 @@
       <!-- ——— AI / Заметки ——— -->
       <div class="view view-main" data-tab="notes">
         <div class="phone">
-          <div class="notes-top"></div>
           <div class="notes-head">
             <h1>AI-Агент</h1>
             <div class="head-right">
@@ -118,15 +101,15 @@
           <div class="screen-body">
             <div class="bubble-grid" id="notes-grid"></div>
             <div class="notes-dock-wrap">
-              <div class="dock">
-                <div class="dock-row">
+              <div class="dock" id="notes-dock">
+                <button type="button" class="dock-row dock-row-btn" id="btn-dock-camera">
                   <i data-lucide="camera"></i>
                   <div class="dock-text">
                     <strong>Камера</strong>
                     <span>Скан задания</span>
                   </div>
                   <i data-lucide="chevron-up" class="chev"></i>
-                </div>
+                </button>
                 <p class="dock-hint" id="dock-hint"></p>
               </div>
             </div>
@@ -137,14 +120,6 @@
       <!-- ——— Профиль ——— -->
       <div class="view view-main" data-tab="profile">
         <div class="phone">
-          <header class="status-bar status-bar--light">
-            <span class="status-time">9:41</span>
-            <div class="status-icons">
-              <i data-lucide="signal"></i>
-              <i data-lucide="wifi"></i>
-              <i data-lucide="battery-medium" class="icon-battery"></i>
-            </div>
-          </header>
           <div class="screen-body">
             <div class="page-header">
               <span class="kicker">★ ПРОФИЛЬ</span>
@@ -154,6 +129,7 @@
               <div class="avatar"><i data-lucide="user"></i></div>
               <h2>Ученик Shanks</h2>
               <p>Здесь скоро появятся настройки, подписка и статистика — интерфейс собран по макетам V8 из Pencil.</p>
+              <button type="button" class="btn-profile-action" id="btn-profile-settings">Настройки</button>
             </div>
           </div>
         </div>
@@ -166,11 +142,11 @@
             <i data-lucide="house"></i>
             <span>ГЛАВНАЯ</span>
           </button>
-          <button type="button" class="nav-seg" data-nav="subjects" id="tab-subjects">
+          <button type="button" class="nav-seg" data-nav="subjects">
             <i data-lucide="book-open"></i>
             <span>ПРЕДМЕТЫ</span>
           </button>
-          <button type="button" class="nav-seg" data-nav="notes" id="tab-notes">
+          <button type="button" class="nav-seg" data-nav="notes">
             <i data-lucide="brain"></i>
             <span>ЗАМЕТКИ</span>
           </button>
@@ -185,7 +161,6 @@
     <!-- Стек: деталь предмета -->
     <div class="stack-layer stack-screen" id="stack-subject-detail" data-stack="subject-detail">
       <div class="phone">
-        <div class="sd-top-spacer"></div>
         <div class="screen-body">
           <div class="card-hero pad-h">
             <div class="back-row">
@@ -198,10 +173,15 @@
             <div class="hero-track"><div class="hero-fill" id="sd-hero-fill" style="width:35%"></div></div>
             <p class="hero-sub" id="sd-pct-label">35% изучено</p>
           </div>
+          <div id="sd-search-panel" class="sd-search-panel" hidden>
+            <label class="sr-only" for="sd-search-input">Поиск темы</label>
+            <input type="search" id="sd-search-input" class="sd-search-input" placeholder="Найти тему…" autocomplete="off" />
+            <button type="button" class="sd-search-clear" id="sd-search-clear" aria-label="Очистить">×</button>
+          </div>
           <div class="topic-list" id="sd-topics"></div>
         </div>
         <footer class="sd-footer">
-          <button type="button" class="btn-primary-wide">
+          <button type="button" class="btn-primary-wide" id="btn-sd-search">
             <i data-lucide="search"></i>
             Поиск по темам
           </button>
@@ -212,7 +192,6 @@
     <!-- Стек: тема -->
     <div class="stack-layer stack-screen stack-screen--topic" id="stack-topic" data-stack="topic">
       <div class="phone">
-        <div class="v8StatusPad" style="height:52px;"></div>
         <div class="screen-body pad-topic">
           <div class="tp-header">
             <div class="tp-nav">
@@ -224,22 +203,22 @@
             <p class="tp-meta" id="tp-meta">Математика · 7 класс</p>
             <div class="hero-track tp-pb"><div class="hero-fill" id="tp-bar" style="width:63%"></div></div>
           </div>
-          <div class="mode-row">
-            <div class="mode-tile mode-tile--on">
+          <div class="mode-row" id="topic-mode-row" role="tablist" aria-label="Режим темы">
+            <button type="button" class="mode-tile mode-tile--on" data-mode="theory" role="tab" id="tab-mode-theory" aria-selected="true">
               <i data-lucide="book-open"></i>
               <span class="m-label">Теория</span>
               <span class="m-sub">3/7</span>
-            </div>
-            <div class="mode-tile">
+            </button>
+            <button type="button" class="mode-tile" data-mode="practice" role="tab" id="tab-mode-practice" aria-selected="false">
               <i data-lucide="pencil"></i>
               <span class="m-label">Практика</span>
               <span class="m-sub">0/12</span>
-            </div>
-            <div class="mode-tile mode-tile--dim">
+            </button>
+            <button type="button" class="mode-tile mode-tile--dim" data-mode="test" role="tab" id="tab-mode-test" aria-selected="false">
               <i data-lucide="lock"></i>
               <span class="m-label">Тест</span>
               <span class="m-sub">Закрыт</span>
-            </div>
+            </button>
           </div>
           <div class="theory-list">
             <div class="t-section" id="theory-section-label">Теория</div>
@@ -250,8 +229,10 @@
     </div>
   </div>
 
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20250327"></script>
-  <script src="js/app.js?v=20250327"></script>
+  <script src="js/data.js?v=20250329"></script>
+  <script src="js/app.js?v=20250329"></script>
 </body>
 </html>
