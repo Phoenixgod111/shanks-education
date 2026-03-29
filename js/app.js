@@ -26,6 +26,13 @@
 
   let prefs = { favoritesByGrade: {}, initialized: false };
   let toastTimer = null;
+  let mainBound = false;
+
+  const onbState = {
+    grade: null,
+    subjects: [],
+    goalId: null,
+  };
 
   function iconsRefresh() {
     if (window.lucide) window.lucide.createIcons();
@@ -54,20 +61,322 @@
     } catch (e) {}
   }
 
-  function initPrefs() {
-    prefs = loadPrefs();
-    if (!prefs.initialized) {
+  function ensureGradeBuckets() {
+    if (!prefs.favoritesByGrade || typeof prefs.favoritesByGrade !== "object") {
       prefs.favoritesByGrade = {};
-      const seed = D.seedFavoritesByGrade || {};
-      Object.keys(seed).forEach((g) => {
-        prefs.favoritesByGrade[g] = seed[g].slice();
-      });
-      prefs.initialized = true;
-      savePrefs();
     }
     (D.grades || []).forEach((g) => {
       const k = String(g);
       if (!Array.isArray(prefs.favoritesByGrade[k])) prefs.favoritesByGrade[k] = [];
+    });
+  }
+
+  function initPrefs() {
+    prefs = loadPrefs();
+    if (!prefs || typeof prefs !== "object") prefs = {};
+
+    const legacy =
+      prefs.initialized === true && prefs.onboardingCompleted !== true;
+
+    if (legacy) {
+      prefs.onboardingCompleted = true;
+      if (prefs.grade == null || prefs.grade === "") {
+        prefs.grade = D.defaultGrade || 5;
+      }
+      ensureGradeBuckets();
+      savePrefs();
+    }
+
+    if (!prefs.initialized) {
+      prefs.favoritesByGrade = {};
+      (D.grades || []).forEach((g) => {
+        prefs.favoritesByGrade[String(g)] = [];
+      });
+      prefs.initialized = true;
+      prefs.onboardingCompleted = false;
+      prefs.grade = null;
+      prefs.studyGoal = null;
+      savePrefs();
+    } else {
+      ensureGradeBuckets();
+    }
+  }
+
+  function applyPrefsGradeToState() {
+    const g = Number(prefs.grade);
+    state.grade = Number.isFinite(g) && g > 0 ? g : D.defaultGrade || 5;
+  }
+
+  function setUserGrade(g) {
+    const n = Number(g);
+    if (!Number.isFinite(n)) return;
+    const prev = state.grade;
+    state.grade = n;
+    prefs.grade = n;
+    savePrefs();
+    renderHome();
+    renderSubjects();
+    renderProfile();
+    const sd = getSubjectDetail(state.subjectKey);
+    if (sd) renderSubjectDetail();
+    iconsRefresh();
+    if (prev !== n) toast((D.copy && D.copy.classChanged) || "Класс обновлён");
+  }
+
+  function renderProfile() {
+    const el = $("#profile-grade-value");
+    if (el) el.textContent = `${state.grade} класс`;
+  }
+
+  function showOnboardingUI() {
+    const root = $("#onboarding-root");
+    if (!root) return;
+    root.removeAttribute("hidden");
+    root.setAttribute("aria-hidden", "false");
+    onbGoStep("welcome");
+  }
+
+  function hideOnboardingUI() {
+    const root = $("#onboarding-root");
+    if (!root) return;
+    root.setAttribute("hidden", "");
+    root.setAttribute("aria-hidden", "true");
+  }
+
+  function onbGoStep(step) {
+    $$(".onb-step").forEach((el) => {
+      const on = el.getAttribute("data-onb-step") === step;
+      el.toggleAttribute("hidden", !on);
+      el.classList.toggle("onb-step--active", on);
+    });
+  }
+
+  function onbBuildGradeStep() {
+    const grid = $("#onb-grade-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    (D.grades || []).forEach((g) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "onb-grade-btn";
+      b.textContent = String(g);
+      b.dataset.onChooseGrade = String(g);
+      if (onbState.grade === g) b.classList.add("onb-grade-btn--on");
+      grid.appendChild(b);
+    });
+    const next = $("#onb-grade-next");
+    if (next) next.disabled = onbState.grade == null;
+  }
+
+  function onbBuildSubjectsStep() {
+    const wrap = $("#onb-subject-list");
+    if (!wrap || onbState.grade == null) return;
+    wrap.innerHTML = "";
+    const catalog = getCatalog(onbState.grade);
+    const sel = new Set(onbState.subjects);
+    catalog.forEach((r) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "onb-subject-chip" + (sel.has(r.id) ? " onb-subject-chip--on" : "");
+      btn.dataset.onToggleSubject = r.id;
+      btn.innerHTML = `
+        <span class="onb-ico"><i data-lucide="${r.icon}"></i></span>
+        <span>${r.name}</span>`;
+      wrap.appendChild(btn);
+    });
+    iconsRefresh();
+    const next = $("#onb-subjects-next");
+    if (next) next.disabled = onbState.subjects.length < 1;
+  }
+
+  function onbBuildGoalsStep() {
+    const wrap = $("#onb-goal-list");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    const goals = D.onboardingGoals || [
+      { id: "grades", title: "Подтянуть оценки", sub: "Регулярно" },
+      { id: "exam", title: "К экзамену", sub: "Структура" },
+    ];
+    goals.forEach((g) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "onb-goal-card" + (onbState.goalId === g.id ? " onb-goal-card--on" : "");
+      btn.dataset.onChooseGoal = g.id;
+      btn.innerHTML = `<strong>${g.title}</strong><span>${g.sub}</span>`;
+      wrap.appendChild(btn);
+    });
+  }
+
+  function onbResetDraft() {
+    onbState.grade = null;
+    onbState.subjects = [];
+    onbState.goalId = null;
+  }
+
+  function finishOnboarding() {
+    if (onbState.grade == null || onbState.subjects.length < 1) return;
+    prefs.grade = onbState.grade;
+    setFavoritesForGrade(onbState.grade, onbState.subjects.slice());
+    prefs.studyGoal = onbState.goalId || null;
+    prefs.onboardingCompleted = true;
+    savePrefs();
+    onbResetDraft();
+    hideOnboardingUI();
+    startMainApp();
+  }
+
+  function startMainApp() {
+    $("#main-app")?.classList.remove("main-hidden");
+    applyPrefsGradeToState();
+    renderHome();
+    renderSubjects();
+    renderSubjectDetail();
+    renderTopic(null, getSubjectDetail(state.subjectKey));
+    renderNotes();
+    renderProfile();
+    if (!mainBound) {
+      bind();
+      mainBound = true;
+    }
+    setTab("home");
+    iconsRefresh();
+  }
+
+  function bindOnboarding() {
+    $("#onb-btn-start")?.addEventListener("click", () => {
+      onbGoStep("grade");
+      onbBuildGradeStep();
+    });
+
+    $("#onb-grade-next")?.addEventListener("click", () => {
+      if (onbState.grade == null) return;
+      onbState.subjects = [];
+      onbGoStep("subjects");
+      onbBuildSubjectsStep();
+    });
+
+    $("#onb-subjects-next")?.addEventListener("click", () => {
+      if (onbState.subjects.length < 1) {
+        toast((D.copy && D.copy.noSubjectsOnboarding) || "Выбери предмет");
+        return;
+      }
+      onbGoStep("goal");
+      onbBuildGoalsStep();
+    });
+
+    $("#onb-finish")?.addEventListener("click", () => {
+      if (!onbState.goalId) {
+        toast("Выбери цель — так мы лучше подскажем по приложению.");
+        return;
+      }
+      finishOnboarding();
+    });
+
+    $("#onboarding-root")?.addEventListener("click", (e) => {
+      const gb = e.target.closest("[data-on-choose-grade]");
+      if (gb) {
+        onbState.grade = Number(gb.dataset.onChooseGrade);
+        onbBuildGradeStep();
+        return;
+      }
+      const tb = e.target.closest("[data-on-toggle-subject]");
+      if (tb) {
+        const id = tb.dataset.onToggleSubject;
+        const i = onbState.subjects.indexOf(id);
+        if (i >= 0) onbState.subjects.splice(i, 1);
+        else onbState.subjects.push(id);
+        onbBuildSubjectsStep();
+        return;
+      }
+      const goalBtn = e.target.closest("[data-on-choose-goal]");
+      if (goalBtn) {
+        onbState.goalId = goalBtn.dataset.onChooseGoal;
+        onbBuildGoalsStep();
+        return;
+      }
+      if (e.target.closest("[data-onb-back]")) {
+        const step = $(".onb-step--active")?.getAttribute("data-onb-step");
+        if (step === "grade") {
+          onbGoStep("welcome");
+        } else if (step === "subjects") {
+          onbGoStep("grade");
+          onbBuildGradeStep();
+        } else if (step === "goal") {
+          onbGoStep("subjects");
+          onbBuildSubjectsStep();
+        }
+      }
+    });
+  }
+
+  function openSheet(kind) {
+    const id = kind === "add-subjects" ? "sheet-add-subjects" : "sheet-grade";
+    const el = $(`#${id}`);
+    if (!el) return;
+    el.removeAttribute("hidden");
+    el.setAttribute("aria-hidden", "false");
+    if (kind === "add-subjects") renderAddSubjectsSheet();
+    if (kind === "grade") renderGradeSheet();
+    iconsRefresh();
+  }
+
+  function closeSheet(kind) {
+    if (!kind) return;
+    const id = kind === "add-subjects" ? "sheet-add-subjects" : "sheet-grade";
+    const el = $(`#${id}`);
+    if (!el) return;
+    el.setAttribute("hidden", "");
+    el.setAttribute("aria-hidden", "true");
+  }
+
+  function renderAddSubjectsSheet() {
+    const list = $("#sheet-subject-checklist");
+    const lead = $("#sheet-subjects-lead");
+    if (lead) lead.textContent = `${state.grade} класс · отметь предметы для главной`;
+    if (!list) return;
+    list.innerHTML = "";
+    const catalog = getCatalog(state.grade);
+    const fav = new Set(getFavoritesForGrade(state.grade));
+    catalog.forEach((r) => {
+      const row = document.createElement("label");
+      row.className = "sheet-check-row";
+      const cid = `sh-sub-${r.id}`;
+      row.innerHTML = `
+        <input type="checkbox" id="${cid}" data-sheet-id="${r.id}" ${fav.has(r.id) ? "checked" : ""} />
+        <span class="sheet-check-ico"><i data-lucide="${r.icon}"></i></span>
+        <span>${r.name}</span>`;
+      const cb = row.querySelector("input");
+      cb.addEventListener("change", () => {
+        const sid = cb.getAttribute("data-sheet-id");
+        const arr = getFavoritesForGrade(state.grade).slice();
+        const ix = arr.indexOf(sid);
+        if (cb.checked) {
+          if (ix < 0) arr.push(sid);
+        } else if (ix >= 0) arr.splice(ix, 1);
+        setFavoritesForGrade(state.grade, arr);
+        renderSubjects();
+        renderHome();
+        iconsRefresh();
+      });
+      list.appendChild(row);
+    });
+    iconsRefresh();
+  }
+
+  function renderGradeSheet() {
+    const grid = $("#sheet-grade-buttons");
+    if (!grid) return;
+    grid.innerHTML = "";
+    (D.grades || []).forEach((g) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className =
+        "sheet-grade-btn" + (g === state.grade ? " sheet-grade-btn--on" : "");
+      b.textContent = String(g);
+      b.dataset.pickGradeSheet = String(g);
+      grid.appendChild(b);
     });
   }
 
@@ -134,6 +443,7 @@
     if (tab === "home") renderHome();
     if (tab === "subjects") renderSubjects();
     if (tab === "notes") renderNotes();
+    if (tab === "profile") renderProfile();
     iconsRefresh();
   }
 
@@ -449,11 +759,8 @@
   }
 
   function renderSubjects() {
-    $("#sub-grade-kicker").textContent = `★ КЛАСС ${state.grade}`;
-    $$(".pill").forEach((p) => {
-      const g = +p.dataset.grade;
-      p.classList.toggle("pill--on", g === state.grade);
-    });
+    const k = $("#sub-grade-kicker");
+    if (k) k.textContent = `${state.grade} класс`;
 
     const catalog = getCatalog(state.grade);
     const favIds = getFavoritesForGrade(state.grade);
@@ -465,7 +772,9 @@
     if (favRows.length === 0) {
       const empty = document.createElement("p");
       empty.className = "fav-strip-empty";
-      empty.textContent = "Нет избранных — нажми ❤ на предмете ниже";
+      empty.textContent =
+        (D.copy && D.copy.favStripEmpty) ||
+        "Добавь предметы кнопкой ниже.";
       fav.appendChild(empty);
     } else {
       favRows.forEach((r, i) => {
@@ -503,40 +812,13 @@
         fav.appendChild(wrap);
       });
     }
-
-    const rows = $("#sub-rows");
-    rows.innerHTML = "";
-    catalog.forEach((r) => {
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = "subject-row";
-      el.dataset.subjectId = r.id;
-      const isFav = favSet.has(r.id);
-      el.innerHTML = `
-        <div class="sr-left">
-          <span class="sr-dot" style="background:${r.dot}"></span>
-          <span class="sr-title">${r.name}</span>
-        </div>
-        <div class="sr-right">
-          <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="В избранное">
-            <i data-lucide="heart" class="${isFav ? "ico-heart-fill" : "ico-heart"}"></i>
-          </span>
-          <span class="sr-pct">${r.pct}%</span>
-        </div>`;
-      el.addEventListener("click", (ev) => {
-        if (ev.target.closest("[data-heart-toggle]")) return;
-        state.subjectKey = routeSubjectKey(r.id);
-        renderSubjectDetail();
-        openStack("subject-detail");
-      });
-      rows.appendChild(el);
-    });
+    iconsRefresh();
   }
 
   function renderSubjectDetail() {
     const sd = getSubjectDetail(state.subjectKey);
     if (!sd) return;
-    $("#sd-class").textContent = `★ КЛАСС ${state.grade}`;
+    $("#sd-class").textContent = `${state.grade} класс`;
     const row = catalogRowForDetailKey(state.grade, state.subjectKey);
     $("#sd-title").textContent = row?.name || sd.title;
     const heroPct = row ? row.pct : sd.heroPct;
@@ -748,6 +1030,29 @@
       return;
     }
 
+    if (e.target.closest("#btn-add-subject")) {
+      openSheet("add-subjects");
+      return;
+    }
+
+    if (e.target.closest("#btn-profile-my-class")) {
+      openSheet("grade");
+      return;
+    }
+
+    const sheetX = e.target.closest("[data-sheet-close]");
+    if (sheetX && $("#app")?.contains(sheetX)) {
+      closeSheet(sheetX.getAttribute("data-sheet-close") || "");
+      return;
+    }
+
+    const pickGr = e.target.closest("[data-pick-grade-sheet]");
+    if (pickGr && $("#sheet-grade")?.contains(pickGr)) {
+      setUserGrade(Number(pickGr.getAttribute("data-pick-grade-sheet")));
+      closeSheet("grade");
+      return;
+    }
+
     if (e.target.closest("#btn-profile-settings")) {
       toast((D.copy && D.copy.settings) || "Настройки.");
       return;
@@ -855,15 +1160,6 @@
     $("#sd-back").addEventListener("click", closeStack);
     $("#tp-back").addEventListener("click", closeTopic);
 
-    $$(".pill").forEach((p) => {
-      p.addEventListener("click", () => {
-        state.grade = +p.dataset.grade;
-        renderSubjects();
-        renderHome();
-        iconsRefresh();
-      });
-    });
-
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const ht = document.activeElement?.closest?.("[data-heart-toggle]");
@@ -883,15 +1179,16 @@
   function init() {
     initPrefs();
     $("#loading")?.classList.add("is-hidden");
-    $("#main-app")?.classList.remove("main-hidden");
 
-    renderHome();
-    renderSubjects();
-    renderSubjectDetail();
-    renderTopic(null, getSubjectDetail(state.subjectKey));
-    renderNotes();
-    bind();
-    setTab("home");
+    if (!prefs.onboardingCompleted) {
+      $("#main-app")?.classList.add("main-hidden");
+      showOnboardingUI();
+      bindOnboarding();
+      iconsRefresh();
+      return;
+    }
+
+    startMainApp();
   }
 
   if (document.readyState === "loading") {

@@ -10,13 +10,84 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20250335" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css?v=20260329" />
 </head>
 <body>
   <div id="app">
     <div id="loading" class="loading-screen">
       <p>Загрузка…</p>
+    </div>
+
+    <!-- Онбординг: приветствие → класс → предметы → цель -->
+    <div id="onboarding-root" class="onboarding-root" aria-hidden="true" hidden>
+      <div class="onb-atmo" aria-hidden="true"></div>
+      <div class="onb-ember-layer" aria-hidden="true"></div>
+      <div class="onb-phone">
+        <div class="onb-step onb-step--active" data-onb-step="welcome">
+          <div class="onb-logo-block">
+            <div class="onb-flame-ring" aria-hidden="true">
+              <svg class="onb-flame-svg" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                  <linearGradient id="fl-core" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#7f1d1d" />
+                    <stop offset="40%" stop-color="#ea580c" />
+                    <stop offset="70%" stop-color="#fbbf24" />
+                    <stop offset="100%" stop-color="#fef08a" />
+                  </linearGradient>
+                  <linearGradient id="fl-outer" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#f97316" stop-opacity="0.9" />
+                    <stop offset="100%" stop-color="#dc2626" stop-opacity="0.4" />
+                  </linearGradient>
+                  <filter id="fl-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="b" />
+                    <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+                <path class="onb-flame-glow" fill="url(#fl-outer)" filter="url(#fl-glow)" d="M60 8 C38 28 20 48 18 78 C16 102 34 128 60 132 C86 128 104 102 102 78 C100 48 82 28 60 8 Z" opacity="0.85" />
+                <path class="onb-flame-main" fill="url(#fl-core)" d="M60 18 C44 34 30 52 28 76 C26 96 40 118 60 122 C80 118 94 96 92 76 C90 52 76 34 60 18 Z" />
+                <path class="onb-flame-inner" fill="#fff7ed" opacity="0.35" d="M60 42 C52 54 46 68 48 82 C50 94 58 104 60 106 C62 104 70 94 72 82 C74 68 68 54 60 42 Z" />
+              </svg>
+            </div>
+            <span class="onb-brand" id="onb-brand">SHANKS</span>
+            <p class="onb-tagline">Огонь знаний · шаг за шагом</p>
+          </div>
+          <button type="button" class="onb-btn-main" id="onb-btn-start">Начать</button>
+        </div>
+
+        <div class="onb-step" data-onb-step="grade" hidden>
+          <p class="onb-progress">Шаг 1 из 3</p>
+          <h2 class="onb-title">В каком ты классе?</h2>
+          <p class="onb-sub">Выбери параллель — под неё подстроим предметы и прогресс.</p>
+          <div class="onb-grade-grid" id="onb-grade-grid"></div>
+          <div class="onb-row-actions">
+            <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
+            <button type="button" class="onb-btn-main" id="onb-grade-next" disabled>Далее</button>
+          </div>
+        </div>
+
+        <div class="onb-step" data-onb-step="subjects" hidden>
+          <p class="onb-progress">Шаг 2 из 3</p>
+          <h2 class="onb-title">Какие предметы изучаем?</h2>
+          <p class="onb-sub">Отметь минимум один — их увидишь на главной и здесь.</p>
+          <div class="onb-chip-wrap" id="onb-subject-list"></div>
+          <div class="onb-row-actions">
+            <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
+            <button type="button" class="onb-btn-main" id="onb-subjects-next" disabled>Далее</button>
+          </div>
+        </div>
+
+        <div class="onb-step" data-onb-step="goal" hidden>
+          <p class="onb-progress">Шаг 3 из 3</p>
+          <h2 class="onb-title">Какая цель?</h2>
+          <p class="onb-sub">Подстроим подсказки и мотивацию — можно сменить позже в профиле.</p>
+          <div class="onb-goal-grid" id="onb-goal-list"></div>
+          <div class="onb-row-actions">
+            <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
+            <button type="button" class="onb-btn-main" id="onb-finish">В приложение</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="main-app" class="main-hidden">
@@ -64,25 +135,16 @@
       <div class="view view-main" data-tab="subjects">
         <div class="phone">
           <div class="screen-body">
-            <div class="page-header">
-              <span class="kicker" id="sub-grade-kicker">★ КЛАСС 5</span>
-              <h1 class="page-title">Предметы</h1>
-              <div class="pills">
-                <button type="button" class="pill pill--on" data-grade="5">5</button>
-                <button type="button" class="pill" data-grade="6">6</button>
-                <button type="button" class="pill" data-grade="7">7</button>
-                <button type="button" class="pill" data-grade="8">8</button>
-                <button type="button" class="pill" data-grade="9">9</button>
-                <button type="button" class="pill" data-grade="10">10</button>
-                <button type="button" class="pill" data-grade="11">11</button>
-              </div>
+            <div class="page-header page-header--subjects">
+              <span class="kicker kicker--class" id="sub-grade-kicker">5 класс</span>
+              <h1 class="page-title" id="sub-page-title">Мои предметы</h1>
             </div>
-            <div class="content-panel">
-              <p class="section-kicker">★ ИЗБРАННЫЕ</p>
+            <div class="content-panel content-panel--subjects">
               <div id="fav-list"></div>
-              <div class="sep"></div>
-              <p class="section-kicker section-kicker--catalog">▶ ВСЕ ПРЕДМЕТЫ</p>
-              <div id="sub-rows"></div>
+              <button type="button" class="btn-add-subject" id="btn-add-subject">
+                <i data-lucide="plus-circle"></i>
+                <span>Добавить предмет</span>
+              </button>
             </div>
           </div>
         </div>
@@ -128,7 +190,14 @@
             <div class="profile-card">
               <div class="avatar"><i data-lucide="user"></i></div>
               <h2>Ученик Shanks</h2>
-              <p>Здесь скоро появятся настройки, подписка и статистика — интерфейс собран по макетам V8 из Pencil.</p>
+              <p>Здесь скоро появятся подписка и статистика — интерфейс собран по макетам V8 из Pencil.</p>
+              <button type="button" class="btn-my-class" id="btn-profile-my-class">
+                <span class="btn-my-class-text">
+                  <span class="btn-my-class-label">Мой класс</span>
+                  <span class="btn-my-class-value" id="profile-grade-value">5 класс</span>
+                </span>
+                <i data-lucide="chevron-right" class="btn-my-class-chev"></i>
+              </button>
               <button type="button" class="btn-profile-action" id="btn-profile-settings">Настройки</button>
             </div>
           </div>
@@ -155,6 +224,30 @@
             <span>ПРОФИЛЬ</span>
           </button>
         </nav>
+      </div>
+    </div>
+
+    <!-- Выбор предметов (модалка) -->
+    <div id="sheet-add-subjects" class="sheet-overlay" hidden aria-hidden="true">
+      <div class="sheet-backdrop" data-sheet-close="add-subjects"></div>
+      <div class="sheet-panel" role="dialog" aria-labelledby="sheet-subjects-title">
+        <div class="sheet-grab"></div>
+        <h2 class="sheet-title" id="sheet-subjects-title">Добавить предметы</h2>
+        <p class="sheet-lead" id="sheet-subjects-lead">Отметь предметы для избранного</p>
+        <div class="sheet-checklist" id="sheet-subject-checklist"></div>
+        <button type="button" class="btn-sheet-done" data-sheet-close="add-subjects">Готово</button>
+      </div>
+    </div>
+
+    <!-- Смена класса (профиль) -->
+    <div id="sheet-grade" class="sheet-overlay" hidden aria-hidden="true">
+      <div class="sheet-backdrop" data-sheet-close="grade"></div>
+      <div class="sheet-panel sheet-panel--compact" role="dialog" aria-labelledby="sheet-grade-title">
+        <div class="sheet-grab"></div>
+        <h2 class="sheet-title" id="sheet-grade-title">Мой класс</h2>
+        <p class="sheet-lead">Параллель для каталога и прогресса</p>
+        <div class="sheet-grade-grid" id="sheet-grade-buttons"></div>
+        <button type="button" class="btn-sheet-done btn-sheet-done--ghost" data-sheet-close="grade">Закрыть</button>
       </div>
     </div>
 
@@ -289,7 +382,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20250335"></script>
-  <script src="js/app.js?v=20250335"></script>
+  <script src="js/data.js?v=20260329"></script>
+  <script src="js/app.js?v=20260329"></script>
 </body>
 </html>
