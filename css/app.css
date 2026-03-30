@@ -890,6 +890,26 @@ a {
   gap: 8px;
 }
 
+.topic-module {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.topic-module:last-child {
+  margin-bottom: 0;
+}
+
+.topic-module-kicker {
+  margin: 4px 2px 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+
 .topic-card {
   border-radius: var(--radius-md);
   background: var(--surface);

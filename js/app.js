@@ -117,7 +117,7 @@
     renderHome();
     renderSubjects();
     renderProfile();
-    const sd = getSubjectDetail(state.subjectKey);
+    const sd = getSubjectDetail(state.subjectKey, state.grade);
     if (sd) renderSubjectDetail();
     iconsRefresh();
     if (prev !== n) toast((D.copy && D.copy.classChanged) || "Класс обновлён");
@@ -233,7 +233,7 @@
     renderHome();
     renderSubjects();
     renderSubjectDetail();
-    renderTopic(null, getSubjectDetail(state.subjectKey));
+    renderTopic(null, getSubjectDetail(state.subjectKey, state.grade));
     renderNotes();
     renderProfile();
     if (!mainBound) {
@@ -407,7 +407,10 @@
     return R[id] || id;
   }
 
-  function getSubjectDetail(key) {
+  function getSubjectDetail(key, grade) {
+    const g = grade != null ? grade : state.grade;
+    const byGrade = D.subjectDetailByGrade?.[g]?.[key];
+    if (byGrade) return byGrade;
     return D.subjectDetail?.[key] || D.subjectDetail?.math;
   }
 
@@ -700,6 +703,23 @@
 
   function filterTopics(q) {
     const norm = (q || "").trim().toLowerCase();
+    const modules = $$("#sd-topics .topic-module");
+    if (modules.length) {
+      modules.forEach((mod) => {
+        const modTitle = (
+          mod.querySelector(".topic-module-kicker")?.textContent || ""
+        ).toLowerCase();
+        let nVis = 0;
+        mod.querySelectorAll(".topic-card").forEach((c) => {
+          const t = c.textContent.toLowerCase();
+          const show = !norm || t.includes(norm) || modTitle.includes(norm);
+          c.style.display = show ? "" : "none";
+          if (show) nVis += 1;
+        });
+        mod.style.display = !norm || nVis > 0 ? "" : "none";
+      });
+      return;
+    }
     $$("#sd-topics .topic-card").forEach((c) => {
       const t = c.textContent.toLowerCase();
       c.style.display = !norm || t.includes(norm) ? "" : "none";
@@ -815,8 +835,25 @@
     iconsRefresh();
   }
 
+  function appendTopicCard(tl, t, sd) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "topic-card";
+    card.innerHTML = `
+        <div class="row-between">
+          <h4>${t.title}</h4>
+          <span class="topic-pct">${t.pct}%</span>
+        </div>
+        <div class="tb-track"><div class="tb-fill" style="width:${t.pct}%"></div></div>`;
+    card.addEventListener("click", () => {
+      renderTopic(t, sd);
+      openTopicOverDetail();
+    });
+    tl.appendChild(card);
+  }
+
   function renderSubjectDetail() {
-    const sd = getSubjectDetail(state.subjectKey);
+    const sd = getSubjectDetail(state.subjectKey, state.grade);
     if (!sd) return;
     $("#sd-class").textContent = `${state.grade} класс`;
     const row = catalogRowForDetailKey(state.grade, state.subjectKey);
@@ -827,21 +864,16 @@
 
     const tl = $("#sd-topics");
     tl.innerHTML = "";
-    sd.topics.forEach((t) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "topic-card";
-      card.innerHTML = `
-        <div class="row-between">
-          <h4>${t.title}</h4>
-          <span class="topic-pct">${t.pct}%</span>
-        </div>
-        <div class="tb-track"><div class="tb-fill" style="width:${t.pct}%"></div></div>`;
-      card.addEventListener("click", () => {
-        renderTopic(t, sd);
-        openTopicOverDetail();
-      });
-      tl.appendChild(card);
+    sd.topics.forEach((block) => {
+      if (block.items && Array.isArray(block.items)) {
+        const wrap = document.createElement("div");
+        wrap.className = "topic-module";
+        wrap.innerHTML = `<p class="topic-module-kicker">${block.title}</p>`;
+        block.items.forEach((t) => appendTopicCard(wrap, t, sd));
+        tl.appendChild(wrap);
+      } else {
+        appendTopicCard(tl, block, sd);
+      }
     });
     filterTopics($("#sd-search-input")?.value || "");
   }
@@ -922,7 +954,7 @@
   function renderTopic(topic, sd) {
     closeActivity();
     const T = D.topic;
-    const detail = sd || getSubjectDetail(state.subjectKey);
+    const detail = sd || getSubjectDetail(state.subjectKey, state.grade);
     $("#tp-title").textContent = topic?.title || T.title;
     const subjTitle = detail?.title || "Предмет";
     $("#tp-meta").textContent = `${subjTitle} · ${state.grade} класс`;
