@@ -22,6 +22,8 @@
     practiceDiff: "med",
     testDiff: "easy",
     topicTestUnlocked: true,
+    /** id развёрнутого модуля тем (`subjectKey-grade-midx`); один открыт, без поиска */
+    topicAccordionId: null,
   };
 
   let prefs = { favoritesByGrade: {}, initialized: false };
@@ -701,13 +703,40 @@
     iconsRefresh();
   }
 
+  function moduleItemsAvgPct(items) {
+    if (!items || !items.length) return 0;
+    const sum = items.reduce((s, x) => s + (Number(x.pct) || 0), 0);
+    return Math.round(sum / items.length);
+  }
+
+  function syncTopicAccordionDom() {
+    const norm = ($("#sd-search-input")?.value || "").trim().toLowerCase();
+    $$("#sd-topics .topic-module--accordion").forEach((mod) => {
+      const panel = mod.querySelector(".topic-module-panel");
+      const toggle = mod.querySelector(".topic-module-toggle");
+      let expanded = false;
+      if (norm) {
+        const cards = mod.querySelectorAll(".topic-card");
+        expanded =
+          mod.style.display !== "none" &&
+          Array.from(cards).some((c) => c.style.display !== "none");
+      } else {
+        expanded = mod.dataset.accordionId === state.topicAccordionId;
+      }
+      mod.classList.toggle("topic-module--expanded", expanded);
+      if (panel) panel.hidden = !expanded;
+      if (toggle) toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    });
+    iconsRefresh();
+  }
+
   function filterTopics(q) {
     const norm = (q || "").trim().toLowerCase();
-    const modules = $$("#sd-topics .topic-module");
+    const modules = $$("#sd-topics .topic-module--accordion");
     if (modules.length) {
       modules.forEach((mod) => {
         const modTitle = (
-          mod.querySelector(".topic-module-kicker")?.textContent || ""
+          mod.querySelector(".topic-module-title")?.textContent || ""
         ).toLowerCase();
         let nVis = 0;
         mod.querySelectorAll(".topic-card").forEach((c) => {
@@ -716,8 +745,10 @@
           c.style.display = show ? "" : "none";
           if (show) nVis += 1;
         });
-        mod.style.display = !norm || nVis > 0 ? "" : "none";
+        const showMod = !norm || nVis > 0 || modTitle.includes(norm);
+        mod.style.display = showMod ? "" : "none";
       });
+      syncTopicAccordionDom();
       return;
     }
     $$("#sd-topics .topic-card").forEach((c) => {
@@ -835,10 +866,10 @@
     iconsRefresh();
   }
 
-  function appendTopicCard(tl, t, sd) {
+  function appendTopicCard(tl, t, sd, nested) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "topic-card";
+    card.className = "topic-card" + (nested ? " topic-card--nested" : "");
     card.innerHTML = `
         <div class="row-between">
           <h4>${t.title}</h4>
@@ -850,6 +881,10 @@
       openTopicOverDetail();
     });
     tl.appendChild(card);
+  }
+
+  function topicAccordionKey(blockIndex) {
+    return `${state.subjectKey}-${state.grade}-m${blockIndex}`;
   }
 
   function renderSubjectDetail() {
@@ -864,17 +899,58 @@
 
     const tl = $("#sd-topics");
     tl.innerHTML = "";
-    sd.topics.forEach((block) => {
+    sd.topics.forEach((block, blockIndex) => {
       if (block.items && Array.isArray(block.items)) {
+        const accId = topicAccordionKey(blockIndex);
         const wrap = document.createElement("div");
-        wrap.className = "topic-module";
-        wrap.innerHTML = `<p class="topic-module-kicker">${block.title}</p>`;
-        block.items.forEach((t) => appendTopicCard(wrap, t, sd));
+        wrap.className = "topic-module topic-module--accordion";
+        wrap.dataset.accordionId = accId;
+        const avg = moduleItemsAvgPct(block.items);
+        const panelId = `topic-panel-${accId}`;
+        const headId = `topic-head-${accId}`;
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "topic-module-toggle";
+        toggle.id = headId;
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-controls", panelId);
+        toggle.innerHTML = `
+          <span class="topic-module-toggle-wrap">
+            <span class="topic-module-title">${block.title}</span>
+            <span class="topic-module-meta"><span class="topic-module-pct">${avg}%</span><span class="topic-module-n">${block.items.length} подтем</span></span>
+          </span>
+          <i data-lucide="chevron-down" class="topic-module-chevron" aria-hidden="true"></i>
+          <span class="tb-track topic-module-track" aria-hidden="true"><span class="tb-fill" style="width:${avg}%"></span></span>`;
+
+        const panel = document.createElement("div");
+        panel.className = "topic-module-panel";
+        panel.id = panelId;
+        panel.setAttribute("role", "region");
+        panel.setAttribute("aria-labelledby", headId);
+        panel.hidden = true;
+
+        block.items.forEach((t) => appendTopicCard(panel, t, sd, true));
+
+        toggle.addEventListener("click", () => {
+          const isOpen = state.topicAccordionId === accId;
+          state.topicAccordionId = isOpen ? null : accId;
+          syncTopicAccordionDom();
+        });
+
+        wrap.appendChild(toggle);
+        wrap.appendChild(panel);
         tl.appendChild(wrap);
       } else {
-        appendTopicCard(tl, block, sd);
+        appendTopicCard(tl, block, sd, false);
       }
     });
+    const accIds = $$("#sd-topics .topic-module--accordion").map(
+      (m) => m.dataset.accordionId
+    );
+    if (state.topicAccordionId && !accIds.includes(state.topicAccordionId)) {
+      state.topicAccordionId = null;
+    }
     filterTopics($("#sd-search-input")?.value || "");
   }
 

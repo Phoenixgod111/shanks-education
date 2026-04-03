@@ -901,13 +901,128 @@ a {
   margin-bottom: 0;
 }
 
-.topic-module-kicker {
-  margin: 4px 2px 2px;
-  font-size: 12px;
+.topic-module--accordion {
+  gap: 0;
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--track);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.topic-module-toggle {
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  position: relative;
+}
+
+.topic-module-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.topic-module-toggle-wrap {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.topic-module-title {
+  font-size: 16px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.topic-module-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted2);
+}
+
+.topic-module-pct {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.topic-module-n {
+  font-weight: 600;
+}
+
+.topic-module-chevron {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  stroke: var(--muted);
+  margin-top: 2px;
+  transition: transform 0.2s ease;
+}
+
+.topic-module--expanded .topic-module-chevron {
+  transform: rotate(180deg);
+}
+
+.topic-module-track {
+  width: 100%;
+  flex-basis: 100%;
+  height: 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.topic-module-track .tb-fill {
+  box-shadow: none;
+}
+
+.topic-module-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--track);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.topic-module-panel[hidden] {
+  display: none !important;
+}
+
+.topic-card--nested {
+  padding: 10px 14px;
+  box-shadow: none;
+}
+
+.topic-card--nested h4 {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.topic-card--nested .topic-pct {
+  font-size: 17px;
+}
+
+.topic-card--nested .tb-track {
+  height: 8px;
 }
 
 .topic-card {
