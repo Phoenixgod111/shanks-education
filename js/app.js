@@ -30,6 +30,10 @@
     topicTestUnlocked: true,
     /** id развёрнутого модуля тем (`subjectKey-grade-midx`); один открыт, без поиска */
     topicAccordionId: null,
+    /** Выбранная подтема из curriculum (экран темы); null — демо-теория из data.js */
+    curriculumTopic: null,
+    /** Название модуля (блока) для выбранной подтемы */
+    topicModuleTitle: null,
   };
 
   let prefs = { favoritesByGrade: {}, initialized: false };
@@ -428,10 +432,72 @@
   }
 
   function getSubjectDetail(key, grade) {
-    const g = grade != null ? grade : state.grade;
+    let g = grade != null ? grade : state.grade;
+    g = Number(g);
+    if (!Number.isFinite(g)) g = Number(D.defaultGrade) || 5;
     const byGrade = D.subjectDetailByGrade?.[g]?.[key];
     if (byGrade) return byGrade;
     return D.subjectDetail?.[key] || D.subjectDetail?.math;
+  }
+
+  /** Блоки с массивом items — как в curriculum/math/*.json */
+  function mathTopicsLookModular(topics) {
+    return (
+      Array.isArray(topics) &&
+      topics.length > 0 &&
+      topics.some(
+        (b) =>
+          b &&
+          Array.isArray(b.items) &&
+          b.items.length > 0
+      )
+    );
+  }
+
+  /** Пока грузим JSON с сервера — подставляем полный курс из встроенного бэкапа (file://, офлайн, 404). */
+  function applyEmbeddedMathCurriculum() {
+    const E = window.SHANKS_MATH_CURRICULUM_EMBED;
+    if (!E || typeof E !== "object") return;
+    if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
+      D.subjectDetailByGrade = {};
+    }
+    [5, 6, 7, 8, 9].forEach((g) => {
+      const data = E[g] ?? E[String(g)];
+      if (!data || !mathTopicsLookModular(data.topics)) return;
+      if (!D.subjectDetailByGrade[g]) D.subjectDetailByGrade[g] = {};
+      D.subjectDetailByGrade[g].math = {
+        title: data.title || "Математика",
+        topics: data.topics,
+      };
+    });
+  }
+
+  /** Если для класса нет модульной математики — снова заливаем из embed (после сбоя fetch и т. п.). */
+  function ensureMathCurriculumForGrade(grade) {
+    const g = Number(grade);
+    if (!Number.isFinite(g) || g < 5 || g > 9) return;
+    const cur = D.subjectDetailByGrade[g]?.math;
+    if (mathTopicsLookModular(cur?.topics)) return;
+    backfillMathFromEmbedForGaps();
+  }
+
+  /** Подставить embed только там, где нет модульных тем (не трогать удачный fetch). */
+  function backfillMathFromEmbedForGaps() {
+    const E = window.SHANKS_MATH_CURRICULUM_EMBED;
+    if (!E || typeof E !== "object") return;
+    if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
+      D.subjectDetailByGrade = {};
+    }
+    [5, 6, 7, 8, 9].forEach((g) => {
+      if (mathTopicsLookModular(D.subjectDetailByGrade[g]?.math?.topics)) return;
+      const data = E[g] ?? E[String(g)];
+      if (!data || !mathTopicsLookModular(data.topics)) return;
+      if (!D.subjectDetailByGrade[g]) D.subjectDetailByGrade[g] = {};
+      D.subjectDetailByGrade[g].math = {
+        title: data.title || "Математика",
+        topics: data.topics,
+      };
+    });
   }
 
   function catalogRowForDetailKey(grade, detailKey) {
@@ -503,6 +569,8 @@
 
   function closeTopic() {
     closeActivity();
+    state.curriculumTopic = null;
+    state.topicModuleTitle = null;
     $("#stack-topic").classList.remove("is-open");
     state.stack = "subject-detail";
     iconsRefresh();
@@ -862,7 +930,7 @@
     iconsRefresh();
   }
 
-  function appendTopicCard(tl, t, sd, nested) {
+  function appendTopicCard(tl, t, sd, nested, moduleTitle) {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "topic-card" + (nested ? " topic-card--nested" : "");
@@ -873,7 +941,7 @@
         </div>
         <div class="tb-track"><div class="tb-fill" style="width:${t.pct}%"></div></div>`;
     card.addEventListener("click", () => {
-      renderTopic(t, sd);
+      renderTopic(t, sd, moduleTitle);
       openTopicOverDetail();
     });
     tl.appendChild(card);
@@ -884,6 +952,7 @@
   }
 
   function renderSubjectDetail() {
+    if (state.subjectKey === "math") ensureMathCurriculumForGrade(state.grade);
     const sd = getSubjectDetail(state.subjectKey, state.grade);
     if (!sd) return;
     $("#sd-class").textContent = `${state.grade} класс`;
@@ -926,7 +995,9 @@
         panel.setAttribute("aria-labelledby", headId);
         panel.hidden = true;
 
-        block.items.forEach((t) => appendTopicCard(panel, t, sd, true));
+        block.items.forEach((t) =>
+          appendTopicCard(panel, t, sd, true, block.title)
+        );
 
         toggle.addEventListener("click", () => {
           const isOpen = state.topicAccordionId === accId;
@@ -946,6 +1017,9 @@
     );
     if (state.topicAccordionId && !accIds.includes(state.topicAccordionId)) {
       state.topicAccordionId = null;
+    }
+    if (!state.topicAccordionId && accIds.length > 0) {
+      state.topicAccordionId = accIds[0];
     }
     filterTopics($("#sd-search-input")?.value || "");
   }
@@ -1018,14 +1092,48 @@
     const label = $("#theory-section-label");
     const list = $("#theory-list-body");
     list.innerHTML = "";
+    const ct = state.curriculumTopic;
+    if (ct && ct.title) {
+      if (label) label.textContent = state.topicModuleTitle || "Тема";
+      const row = document.createElement("div");
+      row.className = "theory-item theory-featured";
+      const pct = Math.min(100, Math.max(0, Number(ct.pct) || 0));
+      row.innerHTML = `
+        <div class="tf-top">
+          <strong>${ct.title}</strong>
+          <span class="badge-read">Подтема · ${pct}%</span>
+        </div>
+        <div class="tf-bar-track"><div class="tf-bar-fill" style="width:${pct}%"></div></div>`;
+      list.appendChild(row);
+      const muted = document.createElement("button");
+      muted.type = "button";
+      muted.className = "theory-item theory-muted";
+      muted.innerHTML = `
+        <span class="accent-bar"></span>
+        <div class="theory-body tm-body">
+          <strong>Урок по теме</strong>
+          <span>Полный разбор и тренажёр — в следующей версии приложения</span>
+        </div>`;
+      muted.addEventListener("click", () =>
+        toast("Материал по этой подтеме подключим в полной версии.")
+      );
+      list.appendChild(muted);
+      iconsRefresh();
+      return;
+    }
     if (label) label.textContent = "Теория";
     appendTheoryItems(list, T);
     iconsRefresh();
   }
 
-  function renderTopic(topic, sd) {
+  function renderTopic(topic, sd, moduleTitle) {
     closeActivity();
     const T = D.topic;
+    state.curriculumTopic = topic && topic.title ? topic : null;
+    state.topicModuleTitle =
+      state.curriculumTopic && moduleTitle != null && String(moduleTitle).trim()
+        ? String(moduleTitle).trim()
+        : null;
     const detail = sd || getSubjectDetail(state.subjectKey, state.grade);
     $("#tp-title").textContent = topic?.title || T.title;
     const subjTitle = detail?.title || "Предмет";
@@ -1280,19 +1388,53 @@
     });
   }
 
+  function loadMathCurriculumIntoD() {
+    applyEmbeddedMathCurriculum();
+    const ver = encodeURIComponent(D.curriculumMathVersion || "1");
+    const grades = [5, 6, 7, 8, 9];
+    if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
+      D.subjectDetailByGrade = {};
+    }
+    return Promise.all(
+      grades.map((g) =>
+        fetch(`curriculum/math/${g}.json?v=${ver}`)
+          .then((res) => {
+            if (!res.ok) throw new Error("not ok");
+            return res.json();
+          })
+          .catch(() => null)
+      )
+    ).then((results) => {
+      results.forEach((data, i) => {
+        if (!data || !mathTopicsLookModular(data.topics)) return;
+        const g = grades[i];
+        if (!D.subjectDetailByGrade[g]) D.subjectDetailByGrade[g] = {};
+        D.subjectDetailByGrade[g].math = {
+          title: data.title || "Математика",
+          topics: data.topics,
+        };
+      });
+      backfillMathFromEmbedForGaps();
+    });
+  }
+
   function init() {
     initPrefs();
-    $("#loading")?.classList.add("is-hidden");
+    loadMathCurriculumIntoD()
+      .catch(() => {})
+      .finally(() => {
+        $("#loading")?.classList.add("is-hidden");
 
-    if (!prefs.onboardingCompleted) {
-      $("#main-app")?.classList.add("main-hidden");
-      showOnboardingUI();
-      bindOnboarding();
-      iconsRefresh();
-      return;
-    }
+        if (!prefs.onboardingCompleted) {
+          $("#main-app")?.classList.add("main-hidden");
+          showOnboardingUI();
+          bindOnboarding();
+          iconsRefresh();
+          return;
+        }
 
-    startMainApp();
+        startMainApp();
+      });
   }
 
   if (document.readyState === "loading") {
