@@ -1617,6 +1617,10 @@ a {
   box-shadow: var(--shadow-sm);
 }
 
+.sd-search-panel--sheet {
+  margin: 0 0 12px;
+}
+
 .sd-search-input {
   flex: 1;
   min-width: 0;

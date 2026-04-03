@@ -12,6 +12,12 @@
 
   const PREFS_KEY = D.storageKey || "shanks_prefs_v2";
 
+  const SHEET_BY_KIND = {
+    "add-subjects": "sheet-add-subjects",
+    grade: "sheet-grade",
+    "topic-search": "sheet-topic-search",
+  };
+
   const state = {
     tab: "home",
     grade: D.defaultGrade || 5,
@@ -314,20 +320,32 @@
   }
 
   function openSheet(kind) {
-    const id = kind === "add-subjects" ? "sheet-add-subjects" : "sheet-grade";
-    const el = $(`#${id}`);
+    const sid = SHEET_BY_KIND[kind];
+    if (!sid) return;
+    const el = $(`#${sid}`);
     if (!el) return;
     el.removeAttribute("hidden");
     el.setAttribute("aria-hidden", "false");
     if (kind === "add-subjects") renderAddSubjectsSheet();
     if (kind === "grade") renderGradeSheet();
+    if (kind === "topic-search") {
+      $("#btn-sd-search")?.classList.add("is-active");
+      setTimeout(() => $("#sd-search-input")?.focus(), 100);
+    }
     iconsRefresh();
   }
 
   function closeSheet(kind) {
     if (!kind) return;
-    const id = kind === "add-subjects" ? "sheet-add-subjects" : "sheet-grade";
-    const el = $(`#${id}`);
+    if (kind === "topic-search") {
+      const inp = $("#sd-search-input");
+      if (inp) inp.value = "";
+      filterTopics("");
+      $("#btn-sd-search")?.classList.remove("is-active");
+    }
+    const sid = SHEET_BY_KIND[kind];
+    if (!sid) return;
+    const el = $(`#${sid}`);
     if (!el) return;
     el.setAttribute("hidden", "");
     el.setAttribute("aria-hidden", "true");
@@ -453,13 +471,7 @@
   }
 
   function resetSearchUi() {
-    const sp = $("#sd-search-panel");
-    const inp = $("#sd-search-input");
-    const btn = $("#btn-sd-search");
-    if (sp) sp.hidden = true;
-    if (inp) inp.value = "";
-    if (btn) btn.classList.remove("is-active");
-    filterTopics("");
+    closeSheet("topic-search");
   }
 
   function closeActivity() {
@@ -684,22 +696,6 @@
     $("#app").classList.remove("stack-open");
     $$(".stack-layer").forEach((el) => el.classList.remove("is-open"));
     resetSearchUi();
-    iconsRefresh();
-  }
-
-  function toggleSearchPanel() {
-    const sp = $("#sd-search-panel");
-    const btn = $("#btn-sd-search");
-    if (!sp) return;
-    const next = sp.hidden;
-    sp.hidden = !next;
-    btn?.classList.toggle("is-active", next);
-    if (next) {
-      setTimeout(() => $("#sd-search-input")?.focus(), 80);
-    } else {
-      $("#sd-search-input").value = "";
-      filterTopics("");
-    }
     iconsRefresh();
   }
 
@@ -1172,7 +1168,7 @@
     }
 
     if (e.target.closest("#btn-sd-search")) {
-      toggleSearchPanel();
+      openSheet("topic-search");
       return;
     }
 

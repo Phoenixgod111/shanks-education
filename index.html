@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20260331" />
+  <link rel="stylesheet" href="css/app.css?v=20260401" />
 </head>
 <body>
   <div id="app">
@@ -251,6 +251,22 @@
       </div>
     </div>
 
+    <!-- Поиск тем (все предметы и классы — только через кнопку внизу экрана предмета) -->
+    <div id="sheet-topic-search" class="sheet-overlay" hidden aria-hidden="true">
+      <div class="sheet-backdrop" data-sheet-close="topic-search"></div>
+      <div class="sheet-panel sheet-panel--compact" role="dialog" aria-labelledby="sheet-topic-search-title">
+        <div class="sheet-grab"></div>
+        <h2 class="sheet-title" id="sheet-topic-search-title">Поиск по темам</h2>
+        <p class="sheet-lead">Введи слово из названия темы</p>
+        <div class="sd-search-panel sd-search-panel--sheet">
+          <label class="sr-only" for="sd-search-input">Поиск темы</label>
+          <input type="search" id="sd-search-input" class="sd-search-input" placeholder="Найти тему…" autocomplete="off" />
+          <button type="button" class="sd-search-clear" id="sd-search-clear" aria-label="Очистить">×</button>
+        </div>
+        <button type="button" class="btn-sheet-done" data-sheet-close="topic-search">Готово</button>
+      </div>
+    </div>
+
     <!-- Стек: деталь предмета -->
     <div class="stack-layer stack-screen" id="stack-subject-detail" data-stack="subject-detail">
       <div class="phone">
@@ -265,11 +281,6 @@
             <h1 class="hero-title" id="sd-title">Математика</h1>
             <div class="hero-track"><div class="hero-fill" id="sd-hero-fill" style="width:35%"></div></div>
             <p class="hero-sub" id="sd-pct-label">35% изучено</p>
-          </div>
-          <div id="sd-search-panel" class="sd-search-panel" hidden>
-            <label class="sr-only" for="sd-search-input">Поиск темы</label>
-            <input type="search" id="sd-search-input" class="sd-search-input" placeholder="Найти тему…" autocomplete="off" />
-            <button type="button" class="sd-search-clear" id="sd-search-clear" aria-label="Очистить">×</button>
           </div>
           <div class="topic-list" id="sd-topics"></div>
         </div>
@@ -382,7 +393,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20260331"></script>
-  <script src="js/app.js?v=20260331"></script>
+  <script src="js/data.js?v=20260401"></script>
+  <script src="js/app.js?v=20260401"></script>
 </body>
 </html>
