@@ -1043,6 +1043,35 @@ a {
   gap: 8px;
 }
 
+.topic-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.topic-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.topic-card-badge--live {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.topic-card-badge--soon {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
 .topic-card h4 {
   margin: 0;
   font-size: 16px;
@@ -1272,6 +1301,56 @@ a {
 
 .theory-item .check {
   stroke: #22c55e;
+}
+
+.lesson-card {
+  border-radius: 16px;
+  padding: 16px;
+  background: #111111;
+  color: #f8fafc;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.lesson-card .tf-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lesson-card .tf-top strong {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.lesson-card p {
+  margin: 8px 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #fed7aa;
+}
+
+.lesson-action {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: var(--shadow-orange);
+}
+
+.topic-empty-note {
+  margin: 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .theory-featured {
@@ -2045,6 +2124,37 @@ a {
   background: #ea580c;
 }
 
+.act-tab-v8--disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.act-tab-v8--disabled .act-tab-v8-label {
+  color: #9ca3af;
+}
+
+.act-learning-hint-v8 {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: #f9fafb;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted2);
+}
+
+.act-learning-hint-v8 p {
+  margin: 0;
+}
+
+.theory-block-body {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted2);
+}
+
 .act-diff-wrap-v8 {
   padding: 12px 16px 8px;
 }
@@ -2137,6 +2247,59 @@ a {
   font-size: 12px;
   font-weight: 600;
   color: #6b7280;
+}
+
+.lesson-quiz-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.lesson-quiz-card strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: #111111;
+}
+
+.lesson-quiz-card p {
+  margin: 8px 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #374151;
+}
+
+.lesson-answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lesson-answer-btn {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #111111;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lesson-answer-btn--ok {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.lesson-explain {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #15803d;
 }
 
 .act-task-card {

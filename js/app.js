@@ -7,6 +7,8 @@
   "use strict";
 
   const D = window.SHANKS_DATA || {};
+  const Progress = window.SHANKS_PROGRESS || {};
+  const KPI = window.SHANKS_MATH_KPI || {};
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
@@ -15,6 +17,7 @@
   const SHEET_BY_KIND = {
     "add-subjects": "sheet-add-subjects",
     grade: "sheet-grade",
+    goal: "sheet-goal",
     "topic-search": "sheet-topic-search",
   };
 
@@ -36,7 +39,7 @@
     topicModuleTitle: null,
   };
 
-  let prefs = { favoritesByGrade: {}, initialized: false };
+  let prefs = { favoritesByGrade: {}, initialized: false, topicProgress: {} };
   let toastTimer = null;
   let mainBound = false;
 
@@ -64,7 +67,7 @@
       const raw = localStorage.getItem(PREFS_KEY);
       if (raw) return JSON.parse(raw);
     } catch (e) {}
-    return { favoritesByGrade: {}, initialized: false };
+    return { favoritesByGrade: {}, initialized: false, topicProgress: {} };
   }
 
   function savePrefs() {
@@ -81,6 +84,12 @@
       const k = String(g);
       if (!Array.isArray(prefs.favoritesByGrade[k])) prefs.favoritesByGrade[k] = [];
     });
+  }
+
+  function ensureTopicProgressStore() {
+    if (!prefs.topicProgress || typeof prefs.topicProgress !== "object") {
+      prefs.topicProgress = {};
+    }
   }
 
   function initPrefs() {
@@ -102,15 +111,18 @@
     if (!prefs.initialized) {
       prefs.favoritesByGrade = {};
       (D.grades || []).forEach((g) => {
-        prefs.favoritesByGrade[String(g)] = [];
+        const seed = D.seedFavoritesByGrade?.[g] || D.seedFavoritesByGrade?.[String(g)] || [];
+        prefs.favoritesByGrade[String(g)] = Array.isArray(seed) ? seed.slice() : [];
       });
       prefs.initialized = true;
       prefs.onboardingCompleted = false;
       prefs.grade = null;
       prefs.studyGoal = null;
+      prefs.topicProgress = {};
       savePrefs();
     } else {
       ensureGradeBuckets();
+      ensureTopicProgressStore();
     }
   }
 
@@ -138,6 +150,9 @@
   function renderProfile() {
     const el = $("#profile-grade-value");
     if (el) el.textContent = `${state.grade} класс`;
+    const goal = (D.onboardingGoals || []).find((g) => g.id === prefs.studyGoal);
+    const goalEl = $("#profile-goal-value");
+    if (goalEl) goalEl.textContent = goal?.title || "Не выбрана";
   }
 
   function showOnboardingUI() {
@@ -332,6 +347,7 @@
     el.setAttribute("aria-hidden", "false");
     if (kind === "add-subjects") renderAddSubjectsSheet();
     if (kind === "grade") renderGradeSheet();
+    if (kind === "goal") renderGoalSheet();
     if (kind === "topic-search") {
       $("#btn-sd-search")?.classList.add("is-active");
       setTimeout(() => $("#sd-search-input")?.focus(), 100);
@@ -400,6 +416,21 @@
         "sheet-grade-btn" + (g === state.grade ? " sheet-grade-btn--on" : "");
       b.textContent = String(g);
       b.dataset.pickGradeSheet = String(g);
+      grid.appendChild(b);
+    });
+  }
+
+  function renderGoalSheet() {
+    const grid = $("#sheet-goal-buttons");
+    if (!grid) return;
+    grid.innerHTML = "";
+    (D.onboardingGoals || []).forEach((g) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className =
+        "onb-goal-card" + (g.id === prefs.studyGoal ? " onb-goal-card--on" : "");
+      b.dataset.pickGoalSheet = g.id;
+      b.innerHTML = `<strong>${g.title}</strong><span>${g.sub}</span>`;
       grid.appendChild(b);
     });
   }
@@ -504,12 +535,199 @@
     return getCatalog(grade).find((r) => routeSubjectKey(r.id) === detailKey);
   }
 
+  function clampPct(value) {
+    if (Progress.clampPct) return Progress.clampPct(value);
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.min(100, Math.max(0, Math.round(n)));
+  }
+
+  function isCurriculumTopic(topic) {
+    return topic && typeof topic.id === "string" && topic.id.length > 0;
+  }
+
+  function getLearningContent(topic) {
+    if (!isCurriculumTopic(topic)) return null;
+    const m = window.SHANKS_MATH_LEARNING?.byTopicId?.[topic.id];
+    return m && typeof m === "object" ? m : null;
+  }
+
+  /** Id тем для KPI среднего по математике (см. SHANKS_MATH_KPI + D.mathLearningKpiByGrade). */
+  function getMathKpiIdSet(grade) {
+    return KPI.getMathKpiIdSet ? KPI.getMathKpiIdSet(grade, D.mathLearningKpiByGrade) : null;
+  }
+
+  function filterMathKpiTopicsIfConfigured(items, grade) {
+    if (!KPI.filterMathKpiTopicsIfConfigured) return items;
+    return KPI.filterMathKpiTopicsIfConfigured(items, grade, D.mathLearningKpiByGrade);
+  }
+
+  function refreshTopicTestLock() {
+    const ct = state.curriculumTopic;
+    if (!ct || !isCurriculumTopic(ct)) {
+      state.topicTestUnlocked = true;
+      return;
+    }
+    const lc = getLearningContent(ct);
+    if (!lc) {
+      state.topicTestUnlocked = false;
+      return;
+    }
+    const prog = getTopicProgress(ct, state.grade, state.subjectKey);
+    state.topicTestUnlocked = Progress.isTestUnlocked(prog, lc);
+  }
+
+  function updateTopicModeDescriptors() {
+    const pr = $("#tab-mode-practice .m-sub");
+    const te = $("#tab-mode-test .m-sub");
+    const ct = state.curriculumTopic;
+    if (!ct || !isCurriculumTopic(ct)) {
+      if (pr) pr.textContent = "Тренировка";
+      if (te) te.textContent = "Доступен";
+      return;
+    }
+    const lc = getLearningContent(ct);
+    const prog = getTopicProgress(ct, state.grade, state.subjectKey);
+    if (!lc) {
+      if (pr) pr.textContent = "—";
+      if (te) te.textContent = "Готовится";
+      return;
+    }
+    if (!prog.theoryDone) {
+      if (pr) pr.textContent = "Сначала теория";
+      if (te) te.textContent = "Закрыт";
+      return;
+    }
+    const rule = Progress.getPracticePassRule(lc);
+    const n = Progress.practiceSolvedCount(prog);
+    const req = rule ? rule.required : (lc.practice || []).length;
+    const tot = rule ? rule.total : (lc.practice || []).length;
+    if (pr) pr.textContent = `${n}/${tot} к тесту`;
+    const unlocked = Progress.isTestUnlocked(prog, lc);
+    if (te) {
+      te.textContent = unlocked
+        ? "Доступен"
+        : `Нужно ${req} из ${tot} в практике`;
+    }
+  }
+
+  function topicProgressKey(topic, grade, subjectKey) {
+    if (!isCurriculumTopic(topic)) return "";
+    if (Progress.topicKey) {
+      return Progress.topicKey(subjectKey || state.subjectKey, grade || state.grade, topic.id);
+    }
+    return `${subjectKey || state.subjectKey}:${grade || state.grade}:${topic.id}`;
+  }
+
+  function getTopicProgress(topic, grade, subjectKey) {
+    ensureTopicProgressStore();
+    return prefs.topicProgress[topicProgressKey(topic, grade, subjectKey)] || {};
+  }
+
+  function topicProgressPct(topic, grade, subjectKey) {
+    if (!isCurriculumTopic(topic)) return clampPct(topic?.pct);
+    const progress = getTopicProgress(topic, grade, subjectKey);
+    const lc = window.SHANKS_MATH_LEARNING?.byTopicId?.[topic.id] ?? null;
+    return Progress.topicPct ? Progress.topicPct(progress, lc) : 0;
+  }
+
+  function completeTopicStep(step) {
+    const topic = state.curriculumTopic;
+    if (!isCurriculumTopic(topic)) return;
+    const key = topicProgressKey(topic, state.grade, state.subjectKey);
+    const current = getTopicProgress(topic, state.grade, state.subjectKey);
+    prefs.topicProgress[key] = {
+      ...current,
+      [`${step}Done`]: true,
+      updatedAt: new Date().toISOString(),
+    };
+    savePrefs();
+    refreshTopicTestLock();
+    updateTopicModeDescriptors();
+    syncTopicBody();
+    syncModeTiles();
+    renderActivity();
+    renderSubjectDetail();
+    renderSubjects();
+    renderHome();
+    renderProfile();
+  }
+
+  function persistTopicProgress(topic, patch) {
+    if (!isCurriculumTopic(topic)) return;
+    const key = topicProgressKey(topic, state.grade, state.subjectKey);
+    const current = getTopicProgress(topic, state.grade, state.subjectKey);
+    prefs.topicProgress[key] = {
+      ...current,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    savePrefs();
+    refreshTopicTestLock();
+    updateTopicModeDescriptors();
+    syncTopicBody();
+    syncModeTiles();
+    renderActivity();
+    renderSubjectDetail();
+    renderSubjects();
+    renderHome();
+    renderProfile();
+  }
+
+  function recordPracticeCorrect(questionIndex) {
+    const topic = state.curriculumTopic;
+    const lc = getLearningContent(topic);
+    if (!lc || !Array.isArray(lc.practice)) return;
+    const cur = getTopicProgress(topic, state.grade, state.subjectKey);
+    const ps = { ...(cur.practiceSolved && typeof cur.practiceSolved === "object" ? cur.practiceSolved : {}) };
+    ps[String(questionIndex)] = true;
+    const next = { ...cur, practiceSolved: ps };
+    if (Progress.isPracticePassed(next, lc)) next.practiceDone = true;
+    persistTopicProgress(topic, next);
+    if (Progress.isPracticePassed(next, lc)) {
+      toast("Практика зачтена — можно открыть тест.");
+    } else {
+      toast("Верно — зачтено задание практики.");
+    }
+  }
+
+  function recordTestCorrect(questionIndex) {
+    const topic = state.curriculumTopic;
+    const lc = getLearningContent(topic);
+    if (!lc || !Array.isArray(lc.test)) return;
+    const cur = getTopicProgress(topic, state.grade, state.subjectKey);
+    const ts = { ...(cur.testSolved && typeof cur.testSolved === "object" ? cur.testSolved : {}) };
+    ts[String(questionIndex)] = true;
+    const next = { ...cur, testSolved: ts };
+    const allOk = (lc.test || []).every((_, i) => next.testSolved[String(i)]);
+    if (allOk) next.testDone = true;
+    persistTopicProgress(topic, next);
+    if (allOk) toast("Тест пройден — тема 100%.");
+    else toast("Верно — ответ засчитан.");
+  }
+
+  function subjectProgressPct(row, grade) {
+    if (!row) return 0;
+    if (routeSubjectKey(row.id) !== "math") return clampPct(row.pct);
+    if (Number(grade) > 9) return 0;
+    const sd = getSubjectDetail("math", grade);
+    const items = [];
+    (sd?.topics || []).forEach((block) => {
+      if (Array.isArray(block.items)) items.push(...block.items);
+      else if (isCurriculumTopic(block)) items.push(block);
+    });
+    if (items.length === 0) return clampPct(row.pct);
+    const pool = filterMathKpiTopicsIfConfigured(items, grade);
+    const sum = pool.reduce((acc, item) => acc + topicProgressPct(item, grade, "math"), 0);
+    return Math.round(sum / pool.length);
+  }
+
   function computeOverallAverage(grade) {
     const catalog = getCatalog(grade);
     const fav = new Set(getFavoritesForGrade(grade));
     const favRows = catalog.filter((r) => fav.has(r.id));
     if (favRows.length === 0) return { pct: 0, n: 0 };
-    const sum = favRows.reduce((s, r) => s + (Number(r.pct) || 0), 0);
+    const sum = favRows.reduce((s, r) => s + subjectProgressPct(r, grade), 0);
     return { pct: Math.round(sum / favRows.length), n: favRows.length };
   }
 
@@ -587,6 +805,15 @@
   }
 
   function openActivity(view, diff) {
+    const ct = state.curriculumTopic;
+    if (isCurriculumTopic(ct)) {
+      const lc = getLearningContent(ct);
+      const p = getTopicProgress(ct, state.grade, state.subjectKey);
+      if (lc && !p.theoryDone && view === "practice") {
+        toast("Сначала отметь теорию на экране темы.");
+        return;
+      }
+    }
     state.activityView = view;
     if (view === "practice") {
       if (diff) state.practiceDiff = diff;
@@ -605,7 +832,14 @@
   function renderActivity() {
     const root = $("#stack-activity");
     if (!root) return;
-    const view = state.activityView;
+    let view = state.activityView;
+    const learningTopic = isCurriculumTopic(state.curriculumTopic);
+    const lcLearn = learningTopic ? getLearningContent(state.curriculumTopic) : null;
+    const progLearn = learningTopic ? getTopicProgress(state.curriculumTopic) : null;
+    if (learningTopic && view === "test" && lcLearn && !Progress.isTestUnlocked(progLearn, lcLearn)) {
+      state.activityView = "practice";
+      view = "practice";
+    }
     const diff = view === "practice" ? state.practiceDiff : state.testDiff;
     root.dataset.view = view;
     root.dataset.diff = diff;
@@ -617,17 +851,35 @@
     if (titleEl) titleEl.textContent = tTitle?.textContent || D.topic?.title || "Тема";
     if (metaEl) metaEl.textContent = tMeta?.textContent || D.topic?.subjectLine || "";
 
-    const pack = view === "practice" ? getPracticePack(diff) : getTestPack(diff);
+    const pack = learningTopic ? {} : view === "practice" ? getPracticePack(diff) : getTestPack(diff);
     const pctEl = $("#act-pct-label");
     const fillEl = $("#act-progress-fill");
-    if (pctEl) pctEl.textContent = pack.progressCaption || "";
-    if (fillEl) fillEl.style.width = `${Number(pack.progressPct) || 0}%`;
+    if (learningTopic) {
+      const pct = topicProgressPct(state.curriculumTopic);
+      if (pctEl) pctEl.textContent = `${pct}% · личный прогресс`;
+      if (fillEl) fillEl.style.width = `${pct}%`;
+    } else {
+      if (pctEl) pctEl.textContent = pack.progressCaption || "";
+      if (fillEl) fillEl.style.width = `${Number(pack.progressPct) || 0}%`;
+    }
 
     $$("#act-main-tabs .act-tab-v8").forEach((btn) => {
       const t = btn.dataset.actTab;
       const on =
         (t === "practice" && view === "practice") || (t === "test" && view === "test");
       btn.classList.toggle("act-tab-v8--on", on);
+      const testLocked =
+        learningTopic &&
+        lcLearn &&
+        progLearn &&
+        !Progress.isTestUnlocked(progLearn, lcLearn);
+      if (t === "test" && testLocked) {
+        btn.classList.add("act-tab-v8--disabled");
+        btn.setAttribute("aria-disabled", "true");
+      } else {
+        btn.classList.remove("act-tab-v8--disabled");
+        btn.removeAttribute("aria-disabled");
+      }
     });
 
     const kicker = $("#act-diff-kicker");
@@ -641,16 +893,18 @@
       const Lp = { easy: "Лёгкая", med: "Средняя", hard: "Тяжёлая" };
       const Lt = { easy: "Лёгкий", med: "Средний", hard: "Тяжёлый" };
       const L = view === "practice" ? Lp : Lt;
-      row.innerHTML = keys
-        .map((d) => {
-          const on = d === diff;
-          const isHard = d === "hard";
-          const inner = isHard
-            ? `<i data-lucide="lock" class="act-diff-lock"></i><span>${L[d]}</span>`
-            : L[d];
-          return `<button type="button" class="act-diff-pill-v8${on ? " act-diff-pill-v8--on" : ""}${isHard ? " act-diff-pill-v8--hard" : ""}" data-act-diff="${d}">${inner}</button>`;
-        })
-        .join("");
+      row.innerHTML = learningTopic
+        ? `<button type="button" class="act-diff-pill-v8 act-diff-pill-v8--on" data-act-diff="easy">Тренировка</button>`
+        : keys
+            .map((d) => {
+              const on = d === diff;
+              const isHard = d === "hard";
+              const inner = isHard
+                ? `<i data-lucide="lock" class="act-diff-lock"></i><span>${L[d]}</span>`
+                : L[d];
+              return `<button type="button" class="act-diff-pill-v8${on ? " act-diff-pill-v8--on" : ""}${isHard ? " act-diff-pill-v8--hard" : ""}" data-act-diff="${d}">${inner}</button>`;
+            })
+            .join("");
     }
 
     const body = $("#act-body");
@@ -658,7 +912,114 @@
     if (body) body.innerHTML = "";
     if (foot) foot.innerHTML = "";
 
-    if (view === "practice") {
+    if (learningTopic) {
+      const lc = getLearningContent(state.curriculumTopic);
+      const progress = getTopicProgress(state.curriculumTopic);
+      const rule = lc ? Progress.getPracticePassRule(lc) : null;
+      const practice = lc?.practice || [];
+      const tests = lc?.test || [];
+      const isPractice = view === "practice";
+      const pass = lc ? Progress.isPracticePassed(progress, lc) : false;
+      const testPass = lc ? Progress.isTestPassed(progress, lc) : false;
+
+      if (!lc) {
+        const sec = document.createElement("p");
+        sec.className = "act-section-title-v8";
+        sec.textContent = isPractice ? "Практика" : "Тест";
+        body.appendChild(sec);
+        const p = document.createElement("p");
+        p.className = "act-learning-hint-v8";
+        p.innerHTML =
+          "<strong>Контент по теме готовится.</strong> Практика и тест по этой подтеме появятся позже — выбери тему из вертикального среза (например, квадратные уравнения в 8 классе).";
+        body.appendChild(p);
+        foot.innerHTML = `<button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-cta">Закрыть</button>`;
+        iconsRefresh();
+        return;
+      }
+
+      const banner = document.createElement("div");
+      banner.className = "act-learning-hint-v8";
+      if (isPractice) {
+        const n = Progress.practiceSolvedCount(progress);
+        const req = rule ? rule.required : practice.length;
+        const tot = rule ? rule.total : practice.length;
+        banner.innerHTML = `<p><strong>Практика:</strong> зачтено <strong>${n}</strong> из <strong>${tot}</strong> по плану. Для допуска к тесту нужно минимум <strong>${req}</strong> верных ответов (разные карточки).</p>`;
+      } else if (!Progress.isTestUnlocked(progress, lc)) {
+        banner.innerHTML = `<p><strong>Тест закрыт:</strong> сначала зачти практику — минимум <strong>${rule ? rule.required : "?"}</strong> из <strong>${rule ? rule.total : "?"}</strong> заданий.</p>`;
+      } else if (testPass) {
+        banner.innerHTML = "<p>Тест пройден. Тема на 100% — можно вернуться к экрану темы.</p>";
+      } else {
+        const tn = Progress.testSolvedCount(progress);
+        banner.innerHTML = `<p><strong>Тест:</strong> верно <strong>${tn}</strong> из <strong>${tests.length}</strong>. Нужно ответить верно на <strong>каждый</strong> вопрос.</p>`;
+      }
+      body.appendChild(banner);
+
+      if (!isPractice && !Progress.isTestUnlocked(progress, lc)) {
+        const lockMsg = document.createElement("p");
+        lockMsg.className = "act-section-title-v8";
+        lockMsg.textContent = "Сначала практика";
+        body.appendChild(lockMsg);
+        foot.innerHTML = `<button type="button" class="act-cta-btn-v8" id="act-cta">К практике</button>`;
+        iconsRefresh();
+        return;
+      }
+
+      const sec = document.createElement("p");
+      sec.className = "act-section-title-v8";
+      sec.textContent = isPractice ? "Практика по теме" : "Мини-тест по теме";
+      body.appendChild(sec);
+
+      const questions = isPractice ? practice : tests;
+      questions.forEach((q, qi) => {
+        const cardSolved = isPractice
+          ? !!progress.practiceSolved?.[String(qi)]
+          : !!progress.testSolved?.[String(qi)];
+        const allDone = isPractice ? pass : testPass;
+
+        const card = document.createElement("div");
+        card.className = "lesson-quiz-card";
+        card.innerHTML = `
+          <strong>${q.title}</strong>
+          <p>${q.prompt}</p>
+          <div class="lesson-answer-list"></div>
+          <span class="lesson-explain"></span>`;
+        const ex = card.querySelector(".lesson-explain");
+        if (cardSolved || allDone) ex.textContent = q.explanation || "";
+
+        const answerList = card.querySelector(".lesson-answer-list");
+        (q.options || []).forEach((option, oi) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "lesson-answer-btn";
+          btn.textContent = option;
+          const frozen = allDone || cardSolved;
+          if (frozen) {
+            btn.disabled = true;
+            if (oi === q.answerIndex) btn.classList.add("lesson-answer-btn--ok");
+          }
+          btn.addEventListener("click", () => {
+            if (frozen) return;
+            if (oi === q.answerIndex) {
+              if (isPractice) recordPracticeCorrect(qi);
+              else recordTestCorrect(qi);
+            } else {
+              toast("Почти. Выбери вариант, который согласуется с условием.");
+            }
+          });
+          answerList.appendChild(btn);
+        });
+        body.appendChild(card);
+      });
+
+      const nextText = isPractice
+        ? pass
+          ? "Перейти к тесту"
+          : "Решай задания — см. счётчик выше"
+        : testPass
+          ? "Вернуться к теме"
+          : "Ответь на все вопросы";
+      foot.innerHTML = `<button type="button" class="act-cta-btn-v8" id="act-cta">${nextText}</button>`;
+    } else if (view === "practice") {
       const tasks = pack.tasks || [];
       const doneN = tasks.filter((t) => t.done).length;
       const sec = document.createElement("p");
@@ -769,8 +1130,9 @@
 
   function moduleItemsAvgPct(items) {
     if (!items || !items.length) return 0;
-    const sum = items.reduce((s, x) => s + (Number(x.pct) || 0), 0);
-    return Math.round(sum / items.length);
+    const pool = filterMathKpiTopicsIfConfigured(items, state.grade);
+    const sum = pool.reduce((s, x) => s + topicProgressPct(x, state.grade, state.subjectKey), 0);
+    return Math.round(sum / pool.length);
   }
 
   function syncTopicAccordionDom() {
@@ -856,18 +1218,28 @@
         row.className = "subj-row";
         row.dataset.homeSubject = r.id;
         row.dataset.subjectId = r.id;
-        const muted = !r.pct;
+        const effectivePct = subjectProgressPct(r, state.grade);
+        const muted = !effectivePct;
+        const isMathSoon = routeSubjectKey(r.id) === "math" && Number(state.grade) > 9;
+        const mathKpi = routeSubjectKey(r.id) === "math" && getMathKpiIdSet(state.grade);
+        const progressLabel = isMathSoon
+          ? "программа скоро"
+          : routeSubjectKey(r.id) === "math"
+            ? mathKpi
+              ? "интерактивные темы"
+              : "личный прогресс"
+            : "демо-прогресс";
         row.innerHTML = `
           <i data-lucide="${r.icon}" class="subj-ico"></i>
           <div class="subj-meta">
             <strong>${r.name}</strong>
-            <span>${state.grade} класс</span>
+            <span>${state.grade} класс · ${progressLabel}</span>
           </div>
-          <div class="pb-track"><div class="pb-fill" style="width:${muted ? 0 : r.pct}%"></div></div>
+          <div class="pb-track"><div class="pb-fill" style="width:${muted ? 0 : effectivePct}%"></div></div>
           <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="Убрать из избранного">
             <i data-lucide="heart" class="ico-heart-fill"></i>
           </span>
-          <span class="subj-pct ${muted ? "subj-pct--muted" : ""}">${r.pct}%</span>`;
+          <span class="subj-pct ${muted ? "subj-pct--muted" : ""}">${effectivePct}%</span>`;
         list.appendChild(row);
       });
     }
@@ -914,11 +1286,12 @@
 
         const stat = document.createElement("div");
         stat.className = "fav-stat";
+        const effectivePct = subjectProgressPct(r, state.grade);
         stat.innerHTML = `
           <span class="heart-hit" data-heart-toggle tabindex="0" role="button" aria-label="Убрать из избранного">
             <i data-lucide="heart" class="ico-heart-fill"></i>
           </span>
-          <span class="fav-pct">${r.pct}%</span>`;
+          <span class="fav-pct">${effectivePct}%</span>`;
 
         rowInner.appendChild(open);
         rowInner.appendChild(stat);
@@ -934,12 +1307,19 @@
     const card = document.createElement("button");
     card.type = "button";
     card.className = "topic-card" + (nested ? " topic-card--nested" : "");
+    const hasPack = !!getLearningContent(t);
+    const badge = hasPack
+      ? `<span class="topic-card-badge topic-card-badge--live">Интерактив</span>`
+      : `<span class="topic-card-badge topic-card-badge--soon" title="Теория и задания готовятся">Скоро</span>`;
     card.innerHTML = `
         <div class="row-between">
           <h4>${t.title}</h4>
-          <span class="topic-pct">${t.pct}%</span>
+          <span class="topic-card-meta">
+            ${badge}
+            <span class="topic-pct">${topicProgressPct(t, state.grade, state.subjectKey)}%</span>
+          </span>
         </div>
-        <div class="tb-track"><div class="tb-fill" style="width:${t.pct}%"></div></div>`;
+        <div class="tb-track"><div class="tb-fill" style="width:${topicProgressPct(t, state.grade, state.subjectKey)}%"></div></div>`;
     card.addEventListener("click", () => {
       renderTopic(t, sd, moduleTitle);
       openTopicOverDetail();
@@ -958,12 +1338,27 @@
     $("#sd-class").textContent = `${state.grade} класс`;
     const row = catalogRowForDetailKey(state.grade, state.subjectKey);
     $("#sd-title").textContent = row?.name || sd.title;
-    const heroPct = row ? row.pct : sd.heroPct;
-    $("#sd-pct-label").textContent = `${heroPct}% изучено`;
+    const heroPct = row ? subjectProgressPct(row, state.grade) : clampPct(sd.heroPct);
+    const kpiOn = state.subjectKey === "math" && getMathKpiIdSet(state.grade);
+    const label =
+      state.subjectKey === "math"
+        ? kpiOn
+          ? "прогресс по интерактивным темам"
+          : "личный прогресс"
+        : "демо-прогресс";
+    $("#sd-pct-label").textContent = `${heroPct}% · ${label}`;
     $("#sd-hero-fill").style.width = `${heroPct}%`;
 
     const tl = $("#sd-topics");
     tl.innerHTML = "";
+    if (state.subjectKey === "math" && Number(state.grade) > 9) {
+      const p = document.createElement("p");
+      p.className = "topic-empty-note";
+      p.textContent =
+        "Полная программа математики для 10-11 классов готовится. Сейчас доступны реальные темы 5-9 классов.";
+      tl.appendChild(p);
+      return;
+    }
     sd.topics.forEach((block, blockIndex) => {
       if (block.items && Array.isArray(block.items)) {
         const accId = topicAccordionKey(blockIndex);
@@ -1046,6 +1441,12 @@
     iconsRefresh();
   }
 
+  function goalHintText() {
+    const goal = (D.onboardingGoals || []).find((g) => g.id === prefs.studyGoal);
+    if (!goal) return "Цель не выбрана: можешь задать её в профиле.";
+    return `Цель: ${goal.title.toLowerCase()}. Держи короткий цикл без перегруза.`;
+  }
+
   function appendTheoryItems(list, T) {
     (T.theory || []).forEach((item) => {
       if (item.kind === "done") {
@@ -1095,29 +1496,54 @@
     const ct = state.curriculumTopic;
     if (ct && ct.title) {
       if (label) label.textContent = state.topicModuleTitle || "Тема";
-      const row = document.createElement("div");
-      row.className = "theory-item theory-featured";
-      const pct = Math.min(100, Math.max(0, Number(ct.pct) || 0));
-      row.innerHTML = `
+      const progress = getTopicProgress(ct);
+      const pct = topicProgressPct(ct);
+      const lc = getLearningContent(ct);
+      const hero = document.createElement("div");
+      hero.className = "lesson-card lesson-card--hero";
+      hero.innerHTML = `
         <div class="tf-top">
           <strong>${ct.title}</strong>
-          <span class="badge-read">Подтема · ${pct}%</span>
+          <span class="badge-read">${pct}% · личный прогресс</span>
         </div>
+        <p>${goalHintText()}</p>
         <div class="tf-bar-track"><div class="tf-bar-fill" style="width:${pct}%"></div></div>`;
-      list.appendChild(row);
-      const muted = document.createElement("button");
-      muted.type = "button";
-      muted.className = "theory-item theory-muted";
-      muted.innerHTML = `
-        <span class="accent-bar"></span>
-        <div class="theory-body tm-body">
-          <strong>Урок по теме</strong>
-          <span>Полный разбор и тренажёр — в следующей версии приложения</span>
-        </div>`;
-      muted.addEventListener("click", () =>
-        toast("Материал по этой подтеме подключим в полной версии.")
-      );
-      list.appendChild(muted);
+      list.appendChild(hero);
+
+      if (lc) {
+        (lc.theory || []).forEach((block) => {
+          const row = document.createElement("div");
+          row.className = "theory-item theory-featured";
+          row.innerHTML = `
+            <div class="tf-top">
+              <strong>${block.title}</strong>
+              <span class="badge-read">Теория</span>
+            </div>
+            <p class="theory-block-body">${block.body}</p>`;
+          list.appendChild(row);
+        });
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "lesson-action";
+        action.textContent = progress.theoryDone
+          ? "Теория пройдена — перейти к практике"
+          : "Отметить теорию прочитанной";
+        action.addEventListener("click", () => {
+          if (!progress.theoryDone) {
+            completeTopicStep("theory");
+            toast("Теория отмечена как пройденная");
+          } else {
+            openActivity("practice", "easy");
+          }
+        });
+        list.appendChild(action);
+      } else {
+        const note = document.createElement("div");
+        note.className = "lesson-card theory-muted";
+        note.innerHTML =
+          "<p><strong>Контент по теме готовится.</strong> Отдельная теория и задания для этой подтемы ещё не подключены — выбери другую тему или зайди позже.</p>";
+        list.appendChild(note);
+      }
       iconsRefresh();
       return;
     }
@@ -1139,9 +1565,15 @@
     const subjTitle = detail?.title || "Предмет";
     $("#tp-meta").textContent = `${subjTitle} · ${state.grade} класс`;
     const row = catalogRowForDetailKey(state.grade, state.subjectKey);
-    const barPct = row ? Math.min(100, Math.max(0, row.pct)) : T.barWidthPct;
+    const barPct = state.curriculumTopic
+      ? topicProgressPct(state.curriculumTopic, state.grade, state.subjectKey)
+      : row
+        ? subjectProgressPct(row, state.grade)
+        : clampPct(T.barWidthPct);
     $("#tp-bar").style.width = `${barPct}%`;
     state.topicMode = "theory";
+    refreshTopicTestLock();
+    updateTopicModeDescriptors();
     syncModeTiles();
     syncTopicBody();
   }
@@ -1157,14 +1589,14 @@
       tile.innerHTML = `
         <div class="bubble-ico"><i data-lucide="${b.icon}"></i></div>
         <strong>${b.subject}</strong>
-        <span>${b.grade}</span>`;
+        <span>${b.grade} · скоро</span>`;
       grid.appendChild(tile);
     });
     const add = document.createElement("button");
     add.type = "button";
     add.className = "bubble bubble--cta";
     add.dataset.newDialog = "1";
-    add.innerHTML = `<i data-lucide="plus"></i><strong>Новый диалог</strong>`;
+    add.innerHTML = `<i data-lucide="plus"></i><strong>Новый диалог</strong><span>скоро</span>`;
     grid.appendChild(add);
     $("#dock-hint").textContent = D.notes?.dock || "";
   }
@@ -1194,7 +1626,10 @@
 
     if (e.target.closest("#home-quiz-btn")) {
       toast((D.copy && D.copy.quiz) || "QUIZ скоро.");
+      state.subjectKey = "math";
+      renderSubjectDetail();
       setTab("subjects");
+      openStack("subject-detail");
       return;
     }
 
@@ -1252,6 +1687,11 @@
       return;
     }
 
+    if (e.target.closest("#btn-profile-goal")) {
+      openSheet("goal");
+      return;
+    }
+
     const sheetX = e.target.closest("[data-sheet-close]");
     if (sheetX && $("#app")?.contains(sheetX)) {
       closeSheet(sheetX.getAttribute("data-sheet-close") || "");
@@ -1262,6 +1702,17 @@
     if (pickGr && $("#sheet-grade")?.contains(pickGr)) {
       setUserGrade(Number(pickGr.getAttribute("data-pick-grade-sheet")));
       closeSheet("grade");
+      return;
+    }
+
+    const pickGoal = e.target.closest("[data-pick-goal-sheet]");
+    if (pickGoal && $("#sheet-goal")?.contains(pickGoal)) {
+      prefs.studyGoal = pickGoal.getAttribute("data-pick-goal-sheet") || null;
+      savePrefs();
+      renderHome();
+      renderProfile();
+      closeSheet("goal");
+      toast("Цель обновлена");
       return;
     }
 
@@ -1298,7 +1749,13 @@
       }
       if (m === "test") {
         if (!state.topicTestUnlocked) {
-          toast("Тест закрыт: пройди практику по теме.");
+          const ct = state.curriculumTopic;
+          const lc = getLearningContent(ct);
+          if (isCurriculumTopic(ct) && !lc) {
+            toast("Контент по теме готовится — тест пока недоступен.");
+          } else {
+            toast("Тест закрыт: отметь теорию, зачти практику по правилу N/M.");
+          }
           return;
         }
         state.topicMode = "theory";
@@ -1327,6 +1784,16 @@
         return;
       }
       if (t === "test") {
+        if (actTab.classList.contains("act-tab-v8--disabled")) {
+          const lc = getLearningContent(state.curriculumTopic);
+          const prog = getTopicProgress(state.curriculumTopic);
+          if (lc && !Progress.isTestUnlocked(prog, lc)) {
+            toast("Тест закрыт: сначала зачти практику (счётчик N/M на экране темы).");
+          } else if (isCurriculumTopic(state.curriculumTopic) && !lc) {
+            toast("Контент по теме готовится.");
+          }
+          return;
+        }
         state.activityView = "test";
         renderActivity();
         return;
@@ -1348,10 +1815,36 @@
     }
 
     if (e.target.closest("#act-cta")) {
+      if (isCurriculumTopic(state.curriculumTopic)) {
+        const lc = getLearningContent(state.curriculumTopic);
+        const progress = getTopicProgress(state.curriculumTopic);
+        if (!lc) {
+          closeActivity();
+          return;
+        }
+        if (state.activityView === "practice" && Progress.isPracticePassed(progress, lc)) {
+          openActivity("test", "easy");
+          return;
+        }
+        if (state.activityView === "test" && !Progress.isTestUnlocked(progress, lc)) {
+          openActivity("practice", "easy");
+          return;
+        }
+        if (state.activityView === "test" && Progress.isTestPassed(progress, lc)) {
+          closeActivity();
+          return;
+        }
+        toast(
+          state.activityView === "practice"
+            ? "Решай задания практики — подсказки в блоке выше."
+            : "Ответь на все вопросы теста."
+        );
+        return;
+      }
       toast(
         state.activityView === "practice"
           ? "Открываем задачу…"
-          : "Доступ к тестам (демо)."
+          : "Тест в этом режиме — выбери тему из программы с интерактивом."
       );
       return;
     }
@@ -1395,16 +1888,32 @@
     if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
       D.subjectDetailByGrade = {};
     }
-    return Promise.all(
-      grades.map((g) =>
+    return Promise.all([
+      ...grades.map((g) =>
         fetch(`curriculum/math/${g}.json?v=${ver}`)
           .then((res) => {
             if (!res.ok) throw new Error("not ok");
             return res.json();
           })
-          .catch(() => null)
-      )
-    ).then((results) => {
+          .catch((error) => {
+            console.warn(`Не удалось загрузить curriculum/math/${g}.json`, error);
+            return null;
+          })
+      ),
+      fetch(`curriculum/math/learning-slice-ids.json?v=${ver}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null),
+    ]).then((bundle) => {
+      const sliceJson = bundle[bundle.length - 1];
+      const results = bundle.slice(0, -1);
+      if (
+        sliceJson &&
+        sliceJson.byGrade &&
+        typeof sliceJson.byGrade === "object" &&
+        !Array.isArray(sliceJson.byGrade)
+      ) {
+        D.mathLearningKpiByGrade = { ...(D.mathLearningKpiByGrade || {}), ...sliceJson.byGrade };
+      }
       results.forEach((data, i) => {
         if (!data || !mathTopicsLookModular(data.topics)) return;
         const g = grades[i];
@@ -1418,12 +1927,38 @@
     });
   }
 
+  /** QA: только localhost / 127.0.0.1 — сброс topicProgress без смены storageKey (не включать на публичном хосте). */
+  function exposeQaPilotTools() {
+    const allow = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    if (!allow) return;
+    window.__SHANKS_QA__ = {
+      storageKey: PREFS_KEY,
+      resetPilotTopicProgress() {
+        try {
+          const raw = localStorage.getItem(PREFS_KEY);
+          if (!raw) return { ok: false, reason: "no prefs" };
+          const p = JSON.parse(raw);
+          if (!p || typeof p !== "object") return { ok: false, reason: "bad prefs" };
+          p.topicProgress = {};
+          localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, reason: String(e.message || e) };
+        }
+      },
+      reload() {
+        location.reload();
+      },
+    };
+  }
+
   function init() {
     initPrefs();
     loadMathCurriculumIntoD()
-      .catch(() => {})
+      .catch((error) => console.warn("Не удалось подготовить curriculum", error))
       .finally(() => {
         $("#loading")?.classList.add("is-hidden");
+        exposeQaPilotTools();
 
         if (!prefs.onboardingCompleted) {
           $("#main-app")?.classList.add("main-hidden");

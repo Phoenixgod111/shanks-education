@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20260404" />
+  <link rel="stylesheet" href="css/app.css?v=20260505" />
 </head>
 <body>
   <div id="app">
@@ -157,7 +157,7 @@
             <h1>AI-Агент</h1>
             <div class="head-right">
               <i data-lucide="sparkles"></i>
-              <span class="head-sub">AI помощник</span>
+              <span class="head-sub">Скоро</span>
             </div>
           </div>
           <div class="screen-body">
@@ -168,7 +168,7 @@
                   <i data-lucide="camera"></i>
                   <div class="dock-text">
                     <strong>Камера</strong>
-                    <span>Скан задания</span>
+                    <span>Скан задания · скоро</span>
                   </div>
                   <i data-lucide="chevron-up" class="chev"></i>
                 </button>
@@ -195,6 +195,13 @@
                 <span class="btn-my-class-text">
                   <span class="btn-my-class-label">Мой класс</span>
                   <span class="btn-my-class-value" id="profile-grade-value">5 класс</span>
+                </span>
+                <i data-lucide="chevron-right" class="btn-my-class-chev"></i>
+              </button>
+              <button type="button" class="btn-my-class" id="btn-profile-goal">
+                <span class="btn-my-class-text">
+                  <span class="btn-my-class-label">Моя цель</span>
+                  <span class="btn-my-class-value" id="profile-goal-value">Не выбрана</span>
                 </span>
                 <i data-lucide="chevron-right" class="btn-my-class-chev"></i>
               </button>
@@ -248,6 +255,18 @@
         <p class="sheet-lead">Параллель для каталога и прогресса</p>
         <div class="sheet-grade-grid" id="sheet-grade-buttons"></div>
         <button type="button" class="btn-sheet-done btn-sheet-done--ghost" data-sheet-close="grade">Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Смена цели (профиль) -->
+    <div id="sheet-goal" class="sheet-overlay" hidden aria-hidden="true">
+      <div class="sheet-backdrop" data-sheet-close="goal"></div>
+      <div class="sheet-panel sheet-panel--compact" role="dialog" aria-labelledby="sheet-goal-title">
+        <div class="sheet-grab"></div>
+        <h2 class="sheet-title" id="sheet-goal-title">Моя цель</h2>
+        <p class="sheet-lead">Цель меняет подсказки на главной и в темах</p>
+        <div class="onb-goal-grid sheet-goal-grid" id="sheet-goal-buttons"></div>
+        <button type="button" class="btn-sheet-done btn-sheet-done--ghost" data-sheet-close="goal">Закрыть</button>
       </div>
     </div>
 
@@ -393,8 +412,11 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20260404"></script>
-  <script src="js/math-curriculum-embed.js?v=20260405"></script>
-  <script src="js/app.js?v=20260406"></script>
+  <script src="js/data.js?v=20260505"></script>
+  <script src="js/math-learning-content.js?v=20260505"></script>
+  <script src="js/math-curriculum-embed.js?v=20260505"></script>
+  <script src="js/progress.js?v=20260505"></script>
+  <script src="js/math-learning-kpi.js?v=20260505"></script>
+  <script src="js/app.js?v=20260505"></script>
 </body>
 </html>
