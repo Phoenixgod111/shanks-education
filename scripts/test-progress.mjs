@@ -41,10 +41,10 @@ assert(P.topicPct({ theoryDone: true, practiceDone: true, testDone: true }, null
 // topicPct: только теория
 assert(P.topicPct({ theoryDone: true }, sampleContent) === 35, "theory only => 35");
 
-// topicPct: практика зачтена, но без теории — не 70
+// topicPct: практика зачтена без отметки теории — всё равно 70
 assert(
-  P.topicPct({ practiceSolved: { 0: true, 1: true, 2: true }, theoryDone: false }, sampleContent) === 0,
-  "practice passed without theory => 0"
+  P.topicPct({ practiceSolved: { 0: true, 1: true, 2: true }, theoryDone: false }, sampleContent) === 70,
+  "practice passed without theory => 70"
 );
 
 // topicPct: теория + практика 3/4
@@ -80,8 +80,8 @@ assert(
 );
 assert(P.isPracticePassed({ practiceSolved: { 0: true, 1: true, 2: true } }, sampleContent) === true, "3/4 passed");
 
-// isTestUnlocked: нужна теория и практика
-assert(P.isTestUnlocked({ theoryDone: false, practiceSolved: { 0: true, 1: true, 2: true } }, sampleContent) === false, "no theory => locked");
+// isTestUnlocked: достаточно зачтённой практики (теория не обязательна)
+assert(P.isTestUnlocked({ theoryDone: false, practiceSolved: { 0: true, 1: true, 2: true } }, sampleContent) === true, "practice pass without theory => unlocked");
 assert(P.isTestUnlocked({ theoryDone: true, practiceSolved: { 0: true } }, sampleContent) === false, "partial practice => locked");
 assert(P.isTestUnlocked({ theoryDone: true, practiceSolved: { 0: true, 1: true, 2: true } }, sampleContent) === true, "unlocked");
 

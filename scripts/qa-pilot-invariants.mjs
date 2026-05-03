@@ -96,8 +96,8 @@ for (const topicId of m8) {
   for (let i = 0; i < t.test.length; i += 1) ts[String(i)] = true;
   const progFull = { theoryDone: true, practiceSolved: ps, testSolved: ts };
   assert(P.topicPct(progFull, t) === 100, `${topicId}: topicPct must reach 100% when theory+practice+test complete`);
-  const progUnlocked = { theoryDone: true, practiceSolved: ps, testSolved: {} };
-  assert(P.isTestUnlocked(progUnlocked, t) === true, `${topicId}: isTestUnlocked after theory + practice pass`);
+  const progUnlocked = { theoryDone: false, practiceSolved: ps, testSolved: {} };
+  assert(P.isTestUnlocked(progUnlocked, t) === true, `${topicId}: isTestUnlocked after practice pass (theory optional)`);
 }
 
 if (!process.exitCode) {

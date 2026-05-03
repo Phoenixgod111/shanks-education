@@ -43,6 +43,45 @@ function validateQuestionBlock(topicId, label, arr) {
     if (!Number.isInteger(ai) || ai < 0 || ai >= q.options.length) {
       fail(`${p}.answerIndex must be in range of options (0..${q.options.length - 1})`);
     }
+    if (q.hints != null) {
+      if (!Array.isArray(q.hints) || !q.hints.every((h) => typeof h === "string" && h.trim())) {
+        fail(`${p}.hints must be an array of non-empty strings when present`);
+      }
+    }
+    if (q.workedSolution != null) {
+      if (!Array.isArray(q.workedSolution) || !q.workedSolution.every((l) => typeof l === "string")) {
+        fail(`${p}.workedSolution must be an array of strings when present`);
+      }
+    }
+    if (q.theoryRefs != null) {
+      if (!Array.isArray(q.theoryRefs)) fail(`${p}.theoryRefs must be an array when present`);
+      q.theoryRefs.forEach((ref, ri) => {
+        const pr = `${p}.theoryRefs[${ri}]`;
+        if (!isPlainObject(ref) || typeof ref.label !== "string") fail(`${pr} needs label string`);
+        if (!Number.isInteger(ref.blockIndex) || ref.blockIndex < 0) fail(`${pr}.blockIndex must be integer ≥ 0`);
+      });
+    }
+    if (q.misconceptionsByWrongIndex != null) {
+      if (!isPlainObject(q.misconceptionsByWrongIndex)) fail(`${p}.misconceptionsByWrongIndex must be an object`);
+      Object.entries(q.misconceptionsByWrongIndex).forEach(([k, v]) => {
+        if (!/^\d+$/.test(k)) fail(`${p}.misconceptionsByWrongIndex key "${k}" must be numeric string`);
+        if (typeof v !== "string") fail(`${p}.misconceptionsByWrongIndex[${k}] must be string`);
+      });
+    }
+  });
+}
+
+/** blockIndex в theoryRefs должен указывать на существующий блок theory[]. */
+function validateTheoryRefBlockIndices(topicId, theoryLen, label, arr) {
+  if (!Array.isArray(arr) || !Number.isInteger(theoryLen) || theoryLen < 1) return;
+  arr.forEach((q, i) => {
+    if (!q?.theoryRefs) return;
+    q.theoryRefs.forEach((ref, ri) => {
+      const p = `${topicId} ${label}[${i}].theoryRefs[${ri}]`;
+      if (!Number.isInteger(ref.blockIndex) || ref.blockIndex < 0 || ref.blockIndex >= theoryLen) {
+        fail(`${p}.blockIndex must be in 0..${theoryLen - 1} (theory.length=${theoryLen})`);
+      }
+    });
   });
 }
 
@@ -199,8 +238,22 @@ for (const topicId of contentKeys) {
     });
   }
 
+  if (t.objective != null && typeof t.objective !== "string") {
+    fail(`${topicId}: objective must be a string when present`);
+  }
+  if (t.workedExample != null) {
+    const w = t.workedExample;
+    if (!isPlainObject(w)) fail(`${topicId}: workedExample must be an object`);
+    if (typeof w.title !== "string" || !w.title.trim()) fail(`${topicId}: workedExample.title required`);
+    if (!Array.isArray(w.lines) || !w.lines.every((ln) => typeof ln === "string")) {
+      fail(`${topicId}: workedExample.lines must be an array of strings`);
+    }
+  }
+
   validateQuestionBlock(topicId, "practice", t.practice);
   validateQuestionBlock(topicId, "test", t.test);
+  validateTheoryRefBlockIndices(topicId, theory.length, "practice", t.practice);
+  validateTheoryRefBlockIndices(topicId, theory.length, "test", t.test);
 
   const rule = t.practicePassRule;
   if (!isPlainObject(rule)) {

@@ -138,7 +138,7 @@
     /** Allowlist интерактивных тем (KPI); подставляется из curriculum/math/learning-slice-ids.json в app.js */
     mathLearningKpiByGrade: {},
     /** Увеличивай при правках curriculum/math/*.json, чтобы сбросить кэш fetch */
-    curriculumMathVersion: "20260505",
+    curriculumMathVersion: "20260509",
     home: {
       taskDay: {
         title: "Реши 5 задач по алгебре и получи +50 XP",
@@ -329,7 +329,7 @@
       },
       med: {
         progressPct: 72,
-        progressCaption: "72% · 3/7",
+        progressCaption: "72% · 1/3 задач",
         sectionTitle: "Задачи · средний уровень",
         tasks: [
           { title: "№ 1. Тождественные преобразования", sub: "Типовая · 6 мин", preview: "Сократите дробь", done: true },

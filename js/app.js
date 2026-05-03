@@ -294,10 +294,11 @@
     });
 
     $("#onb-finish")?.addEventListener("click", () => {
-      if (!onbState.goalId) {
-        toast("Выбери цель — так мы лучше подскажем по приложению.");
-        return;
-      }
+      finishOnboarding();
+    });
+
+    $("#onb-skip-goal")?.addEventListener("click", () => {
+      onbState.goalId = null;
       finishOnboarding();
     });
 
@@ -578,10 +579,12 @@
   }
 
   function updateTopicModeDescriptors() {
+    const th = $("#tab-mode-theory .m-sub");
     const pr = $("#tab-mode-practice .m-sub");
     const te = $("#tab-mode-test .m-sub");
     const ct = state.curriculumTopic;
     if (!ct || !isCurriculumTopic(ct)) {
+      if (th) th.textContent = "Урок · всегда доступна";
       if (pr) pr.textContent = "Тренировка";
       if (te) te.textContent = "Доступен";
       return;
@@ -589,19 +592,16 @@
     const lc = getLearningContent(ct);
     const prog = getTopicProgress(ct, state.grade, state.subjectKey);
     if (!lc) {
+      if (th) th.textContent = "Готовится";
       if (pr) pr.textContent = "—";
       if (te) te.textContent = "Готовится";
-      return;
-    }
-    if (!prog.theoryDone) {
-      if (pr) pr.textContent = "Сначала теория";
-      if (te) te.textContent = "Закрыт";
       return;
     }
     const rule = Progress.getPracticePassRule(lc);
     const n = Progress.practiceSolvedCount(prog);
     const req = rule ? rule.required : (lc.practice || []).length;
     const tot = rule ? rule.total : (lc.practice || []).length;
+    if (th) th.textContent = prog.theoryDone ? "Изучено" : "Урок · всегда доступна";
     if (pr) pr.textContent = `${n}/${tot} к тесту`;
     const unlocked = Progress.isTestUnlocked(prog, lc);
     if (te) {
@@ -609,6 +609,33 @@
         ? "Доступен"
         : `Нужно ${req} из ${tot} в практике`;
     }
+  }
+
+  /** Текст тоста о закрытом тесте: реальные n/tot/req или человеческий fallback без «N/M». */
+  function learningPracticeGateToastText(variant) {
+    const ct = state.curriculumTopic;
+    if (!isCurriculumTopic(ct)) {
+      return variant === "tab"
+        ? "Тест закрыт: сначала выполни практику по теме."
+        : "Тест закрыт: сначала зачти практику по этой теме.";
+    }
+    const lc = getLearningContent(ct);
+    if (!lc) return "Контент по теме готовится — тест пока недоступен.";
+    const prog = getTopicProgress(ct, state.grade, state.subjectKey);
+    const rule = Progress.getPracticePassRule(lc);
+    const practiceLen = (lc.practice || []).length;
+    const n = Progress.practiceSolvedCount(prog);
+    const req = rule ? rule.required : practiceLen;
+    const tot = rule ? rule.total : practiceLen;
+    if (!rule && practiceLen === 0) {
+      return variant === "tab"
+        ? "Тест закрыт: сначала зачти практику по теме (счётчик на плитке «Практика»)."
+        : "Тест закрыт: сначала зачти практику по теме. Урок по теории можно открыть во вкладке «Теория».";
+    }
+    if (variant === "tab") {
+      return `Тест закрыт: верно решено ${n} из ${tot} по практике, нужно минимум ${req}. Смотри плитку «Практика» у темы.`;
+    }
+    return `Тест закрыт: в практике верно ${n} из ${tot} (нужно минимум ${req}). Урок по теории можно открыть во вкладке «Теория».`;
   }
 
   function topicProgressKey(topic, grade, subjectKey) {
@@ -685,9 +712,7 @@
     if (Progress.isPracticePassed(next, lc)) next.practiceDone = true;
     persistTopicProgress(topic, next);
     if (Progress.isPracticePassed(next, lc)) {
-      toast("Практика зачтена — можно открыть тест.");
-    } else {
-      toast("Верно — зачтено задание практики.");
+      toast("Практика зачтена — открыт тест.");
     }
   }
 
@@ -761,6 +786,14 @@
   function closeActivity() {
     $("#stack-activity")?.classList.remove("is-open");
     if (state.stack === "activity") state.stack = "topic";
+    const ct = state.curriculumTopic;
+    if (isCurriculumTopic(ct) && getLearningContent(ct)) {
+      const v = state.activityView;
+      if (v === "practice") state.topicMode = "practice";
+      else if (v === "test") state.topicMode = "test";
+      else state.topicMode = "theory";
+      syncModeTiles();
+    }
     iconsRefresh();
   }
 
@@ -806,18 +839,16 @@
 
   function openActivity(view, diff) {
     const ct = state.curriculumTopic;
-    if (isCurriculumTopic(ct)) {
-      const lc = getLearningContent(ct);
-      const p = getTopicProgress(ct, state.grade, state.subjectKey);
-      if (lc && !p.theoryDone && view === "practice") {
-        toast("Сначала отметь теорию на экране темы.");
-        return;
-      }
+    if (isCurriculumTopic(ct) && getLearningContent(ct)) {
+      if (view === "theory") state.topicMode = "theory";
+      else if (view === "practice") state.topicMode = "practice";
+      else if (view === "test") state.topicMode = "test";
+      syncModeTiles();
     }
     state.activityView = view;
     if (view === "practice") {
       if (diff) state.practiceDiff = diff;
-    } else {
+    } else if (view === "test") {
       if (diff) state.testDiff = diff;
     }
     state.stack = "activity";
@@ -827,6 +858,154 @@
     $("#stack-activity").classList.add("is-open");
     renderActivity();
     iconsRefresh();
+  }
+
+  function appendLearningQuestionCard(body, q, qi, isPractice, progress, lc) {
+    const cardSolved = isPractice
+      ? !!progress.practiceSolved?.[String(qi)]
+      : !!progress.testSolved?.[String(qi)];
+    const allDone = isPractice
+      ? Progress.isPracticePassed(progress, lc)
+      : Progress.isTestPassed(progress, lc);
+    const hasHints = Array.isArray(q.hints) && q.hints.length > 0;
+    const hasSol = Array.isArray(q.workedSolution) && q.workedSolution.length > 0;
+    const hasRich =
+      hasHints ||
+      hasSol ||
+      (q.misconceptionsByWrongIndex && typeof q.misconceptionsByWrongIndex === "object") ||
+      (Array.isArray(q.theoryRefs) && q.theoryRefs.length > 0);
+
+    const card = document.createElement("div");
+    card.className = "lesson-quiz-card" + (hasRich ? " lesson-quiz-card--rich" : "");
+
+    if (!hasRich) {
+      card.innerHTML = `
+          <strong>${q.title}</strong>
+          <p>${q.prompt}</p>
+          <div class="lesson-answer-list"></div>
+          <span class="lesson-explain"></span>`;
+      const ex = card.querySelector(".lesson-explain");
+      if (cardSolved || allDone) ex.textContent = q.explanation || "";
+      const answerList = card.querySelector(".lesson-answer-list");
+      (q.options || []).forEach((option, oi) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "lesson-answer-btn";
+        btn.textContent = option;
+        const frozen = allDone || cardSolved;
+        if (frozen) {
+          btn.disabled = true;
+          if (oi === q.answerIndex) btn.classList.add("lesson-answer-btn--ok");
+        }
+        btn.addEventListener("click", () => {
+          if (frozen) return;
+          if (oi === q.answerIndex) {
+            if (isPractice) recordPracticeCorrect(qi);
+            else recordTestCorrect(qi);
+          } else {
+            toast("Почти. Выбери вариант, который согласуется с условием.");
+          }
+        });
+        answerList.appendChild(btn);
+      });
+      body.appendChild(card);
+      return;
+    }
+
+    const theoryRefHtml =
+      Array.isArray(q.theoryRefs) && q.theoryRefs.length
+        ? `<p class="act-lm-theory-refs-v8">${q.theoryRefs
+            .map((r) => {
+              const b = (lc.theory || [])[r.blockIndex];
+              const lab = (r && r.label) || (b && b.title) || "Теория";
+              return b ? `<span>Связь с теорией: <strong>${lab}</strong> — «${b.title}»</span>` : "";
+            })
+            .filter(Boolean)
+            .join(" ")}</p>`
+        : "";
+
+    card.innerHTML = `
+          <strong>${q.title}</strong>
+          <p>${q.prompt}</p>
+          ${theoryRefHtml}
+          <div class="lesson-answer-list"></div>
+          <div class="act-lm-feedback-v8" role="status"></div>
+          <div class="act-lm-solution-panel-v8" hidden></div>
+          <div class="act-lm-actions-v8">
+            <button type="button" class="act-lm-sec-btn-v8" data-lm-hint ${hasHints ? "" : "hidden"}>Подсказка</button>
+            <button type="button" class="act-lm-sec-btn-v8 act-lm-sec-btn-v8--primary" data-lm-show-solution ${hasSol ? "" : "hidden"}>Разбор решения</button>
+          </div>
+          <p class="lesson-explain act-lm-explain-v8"></p>`;
+
+    const feedbackEl = card.querySelector(".act-lm-feedback-v8");
+    const solutionPanel = card.querySelector(".act-lm-solution-panel-v8");
+    const hintBtn = card.querySelector("[data-lm-hint]");
+    const solBtn = card.querySelector("[data-lm-show-solution]");
+    const ex = card.querySelector(".act-lm-explain-v8");
+    let hintStep = 0;
+
+    function showSolutionLines() {
+      if (!hasSol) return;
+      solutionPanel.hidden = false;
+      solutionPanel.innerHTML = `<strong>Пошаговый разбор</strong><ol>${q.workedSolution
+        .map((line) => `<li>${line}</li>`)
+        .join("")}</ol>`;
+    }
+
+    if (hintBtn) {
+      hintBtn.addEventListener("click", () => {
+        if (!hasHints) return;
+        if (hintStep >= q.hints.length) {
+          feedbackEl.textContent = "Подсказки закончились — посмотри разбор решения.";
+          return;
+        }
+        feedbackEl.textContent = q.hints[hintStep];
+        hintStep += 1;
+      });
+    }
+    if (solBtn) {
+      solBtn.addEventListener("click", () => {
+        showSolutionLines();
+        solBtn.hidden = true;
+      });
+    }
+
+    if (cardSolved || allDone) {
+      if (q.explanation) ex.textContent = q.explanation;
+      showSolutionLines();
+    }
+
+    const answerList = card.querySelector(".lesson-answer-list");
+    (q.options || []).forEach((option, oi) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "lesson-answer-btn";
+      btn.textContent = option;
+      const frozen = allDone || cardSolved;
+      if (frozen) {
+        btn.disabled = true;
+        if (oi === q.answerIndex) btn.classList.add("lesson-answer-btn--ok");
+      }
+      btn.addEventListener("click", () => {
+        if (frozen) return;
+        if (oi === q.answerIndex) {
+          feedbackEl.textContent = "";
+          if (q.explanation) ex.textContent = q.explanation;
+          showSolutionLines();
+          if (isPractice) recordPracticeCorrect(qi);
+          else recordTestCorrect(qi);
+        } else {
+          const map = q.misconceptionsByWrongIndex;
+          const msg =
+            map && typeof map[String(oi)] === "string"
+              ? map[String(oi)]
+              : "Пока неверно. Используй подсказку или разбор — так связь с теорией станет яснее.";
+          feedbackEl.textContent = msg;
+        }
+      });
+      answerList.appendChild(btn);
+    });
+    body.appendChild(card);
   }
 
   function renderActivity() {
@@ -840,7 +1019,8 @@
       state.activityView = "practice";
       view = "practice";
     }
-    const diff = view === "practice" ? state.practiceDiff : state.testDiff;
+    const diff =
+      view === "practice" ? state.practiceDiff : view === "test" ? state.testDiff : state.practiceDiff;
     root.dataset.view = view;
     root.dataset.diff = diff;
 
@@ -866,7 +1046,9 @@
     $$("#act-main-tabs .act-tab-v8").forEach((btn) => {
       const t = btn.dataset.actTab;
       const on =
-        (t === "practice" && view === "practice") || (t === "test" && view === "test");
+        (t === "theory" && view === "theory") ||
+        (t === "practice" && view === "practice") ||
+        (t === "test" && view === "test");
       btn.classList.toggle("act-tab-v8--on", on);
       const testLocked =
         learningTopic &&
@@ -885,7 +1067,7 @@
     const kicker = $("#act-diff-kicker");
     if (kicker)
       kicker.textContent =
-        view === "practice" ? "Сложность практики" : "Сложность теста";
+        view === "theory" ? "Полноэкранный урок" : view === "practice" ? "Сложность практики" : "Сложность теста";
 
     const row = $("#act-diff-row");
     if (row) {
@@ -906,6 +1088,9 @@
             })
             .join("");
     }
+
+    const diffWrap = root.querySelector(".act-diff-wrap-v8");
+    if (diffWrap) diffWrap.style.display = view === "theory" ? "none" : "";
 
     const body = $("#act-body");
     const foot = $("#act-footer");
@@ -937,6 +1122,46 @@
         return;
       }
 
+      if (view === "theory") {
+        const intro = document.createElement("div");
+        intro.className = "act-theory-lesson-v8";
+        const obj = lc.objective
+          ? `<p class="act-theory-objective-v8"><strong>Цель навыка.</strong> ${lc.objective}</p>`
+          : "";
+        const we = lc.workedExample;
+        const weHtml =
+          we && Array.isArray(we.lines) && we.lines.length
+            ? `<section class="act-worked-example-v8"><h4 class="act-we-title-v8">${we.title}</h4><ol>${we.lines
+                .map((line) => `<li>${line}</li>`)
+                .join("")}</ol></section>`
+            : "";
+        let blocksHtml = "";
+        (lc.theory || []).forEach((b) => {
+          blocksHtml += `<section class="act-theory-block-v8"><h4>${b.title}</h4><p>${b.body}</p></section>`;
+        });
+        intro.innerHTML = `
+          <p class="act-section-title-v8">Урок</p>
+          ${obj}
+          ${blocksHtml}
+          ${weHtml}`;
+        body.appendChild(intro);
+        foot.innerHTML = `
+          <button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-theory-mark"${
+            progress.theoryDone ? ' disabled aria-disabled="true"' : ""
+          }>${progress.theoryDone ? "Теория уже отмечена" : "Отметить как изучено"}</button>
+          <button type="button" class="act-cta-btn-v8" id="act-theory-to-practice">К практике</button>`;
+        iconsRefresh();
+        return;
+      }
+
+      if (view === "practice" && !progress.theoryDone) {
+        const soft = document.createElement("div");
+        soft.className = "act-learning-soft-v8";
+        soft.innerHTML =
+          "<p><strong>Совет:</strong> рекомендуем сначала открыть вкладку «Теория» и пройти урок целиком. Практику можно начать и без отметки — это не блокирует ответы.</p>";
+        body.appendChild(soft);
+      }
+
       const banner = document.createElement("div");
       banner.className = "act-learning-hint-v8";
       if (isPractice) {
@@ -945,12 +1170,14 @@
         const tot = rule ? rule.total : practice.length;
         banner.innerHTML = `<p><strong>Практика:</strong> зачтено <strong>${n}</strong> из <strong>${tot}</strong> по плану. Для допуска к тесту нужно минимум <strong>${req}</strong> верных ответов (разные карточки).</p>`;
       } else if (!Progress.isTestUnlocked(progress, lc)) {
-        banner.innerHTML = `<p><strong>Тест закрыт:</strong> сначала зачти практику — минимум <strong>${rule ? rule.required : "?"}</strong> из <strong>${rule ? rule.total : "?"}</strong> заданий.</p>`;
+        banner.innerHTML = `<p><strong>Тест закрыт,</strong> пока не зачтена практика: минимум <strong>${
+          rule ? rule.required : "?"
+        }</strong> из <strong>${rule ? rule.total : "?"}</strong> верных заданий. Урок по теории доступен в любой момент — он помогает на тесте, но для замка важна именно практика.</p>`;
       } else if (testPass) {
-        banner.innerHTML = "<p>Тест пройден. Тема на 100% — можно вернуться к экрану темы.</p>";
+        banner.innerHTML = "<p><strong>Итоговый тест</strong> пройден. Тема на 100% — можно вернуться к экрану темы.</p>";
       } else {
         const tn = Progress.testSolvedCount(progress);
-        banner.innerHTML = `<p><strong>Тест:</strong> верно <strong>${tn}</strong> из <strong>${tests.length}</strong>. Нужно ответить верно на <strong>каждый</strong> вопрос.</p>`;
+        banner.innerHTML = `<p><strong>Итоговый тест:</strong> верно <strong>${tn}</strong> из <strong>${tests.length}</strong>. Нужен верный ответ на каждый вопрос.</p>`;
       }
       body.appendChild(banner);
 
@@ -966,50 +1193,25 @@
 
       const sec = document.createElement("p");
       sec.className = "act-section-title-v8";
-      sec.textContent = isPractice ? "Практика по теме" : "Мини-тест по теме";
+      sec.textContent = isPractice ? "Практика по теме" : "Итоговый тест";
       body.appendChild(sec);
 
       const questions = isPractice ? practice : tests;
       questions.forEach((q, qi) => {
-        const cardSolved = isPractice
-          ? !!progress.practiceSolved?.[String(qi)]
-          : !!progress.testSolved?.[String(qi)];
-        const allDone = isPractice ? pass : testPass;
-
-        const card = document.createElement("div");
-        card.className = "lesson-quiz-card";
-        card.innerHTML = `
-          <strong>${q.title}</strong>
-          <p>${q.prompt}</p>
-          <div class="lesson-answer-list"></div>
-          <span class="lesson-explain"></span>`;
-        const ex = card.querySelector(".lesson-explain");
-        if (cardSolved || allDone) ex.textContent = q.explanation || "";
-
-        const answerList = card.querySelector(".lesson-answer-list");
-        (q.options || []).forEach((option, oi) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "lesson-answer-btn";
-          btn.textContent = option;
-          const frozen = allDone || cardSolved;
-          if (frozen) {
-            btn.disabled = true;
-            if (oi === q.answerIndex) btn.classList.add("lesson-answer-btn--ok");
-          }
-          btn.addEventListener("click", () => {
-            if (frozen) return;
-            if (oi === q.answerIndex) {
-              if (isPractice) recordPracticeCorrect(qi);
-              else recordTestCorrect(qi);
-            } else {
-              toast("Почти. Выбери вариант, который согласуется с условием.");
-            }
-          });
-          answerList.appendChild(btn);
-        });
-        body.appendChild(card);
+        appendLearningQuestionCard(body, q, qi, isPractice, progress, lc);
       });
+
+      if (!isPractice && testPass) {
+        const ok = Progress.testSolvedCount(progress);
+        const sum = document.createElement("div");
+        sum.className = "act-test-summary-v8";
+        sum.innerHTML = `
+          <h4 class="act-ts-head-v8">Итог</h4>
+          <p>Верно: <strong>${ok}</strong> из <strong>${tests.length}</strong>.</p>
+          <p class="act-ts-muted-v8">Если что-то сомневалось — повтори урок и разборы в практике. Обрати внимание на корни вида x² = d и на знак.</p>
+          <button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-test-to-theory">Вернуться к теории</button>`;
+        body.appendChild(sum);
+      }
 
       const nextText = isPractice
         ? pass
@@ -1425,20 +1627,19 @@
     $$("#topic-mode-row .mode-tile").forEach((btn) => {
       const m = btn.dataset.mode;
       const isTest = m === "test";
-      const on = !isTest && m === mode;
+      const on = m === mode;
       btn.classList.toggle("mode-tile--on", on);
       btn.setAttribute("aria-selected", on ? "true" : "false");
       if (isTest) {
         btn.classList.toggle("mode-tile--dim", !unlocked);
         const ico = btn.querySelector("[data-lucide]");
         if (ico) ico.setAttribute("data-lucide", unlocked ? "clipboard-check" : "lock");
-        const sub = btn.querySelector(".m-sub");
-        if (sub) sub.textContent = unlocked ? "Доступен" : "Закрыт";
       } else {
         btn.classList.remove("mode-tile--dim");
       }
     });
     iconsRefresh();
+    updateTopicModeDescriptors();
   }
 
   function goalHintText() {
@@ -1511,6 +1712,13 @@
       list.appendChild(hero);
 
       if (lc) {
+        const openLesson = document.createElement("button");
+        openLesson.type = "button";
+        openLesson.className = "lesson-action";
+        openLesson.id = "btn-open-theory-lesson";
+        openLesson.textContent = "Открыть полноэкранный урок";
+        list.appendChild(openLesson);
+
         (lc.theory || []).forEach((block) => {
           const row = document.createElement("div");
           row.className = "theory-item theory-featured";
@@ -1735,13 +1943,21 @@
     if (modeBtn) {
       const m = modeBtn.dataset.mode;
       if (m === "theory") {
+        const ct = state.curriculumTopic;
+        const lc = getLearningContent(ct);
+        if (isCurriculumTopic(ct) && lc) {
+          state.topicMode = "theory";
+          syncModeTiles();
+          openActivity("theory", "easy");
+          return;
+        }
         state.topicMode = "theory";
         syncModeTiles();
         syncTopicBody();
         return;
       }
       if (m === "practice") {
-        state.topicMode = "theory";
+        state.topicMode = "practice";
         syncModeTiles();
         syncTopicBody();
         openActivity("practice", state.practiceDiff || "med");
@@ -1754,11 +1970,11 @@
           if (isCurriculumTopic(ct) && !lc) {
             toast("Контент по теме готовится — тест пока недоступен.");
           } else {
-            toast("Тест закрыт: отметь теорию, зачти практику по правилу N/M.");
+            toast(learningPracticeGateToastText("mode"));
           }
           return;
         }
-        state.topicMode = "theory";
+        state.topicMode = "test";
         syncModeTiles();
         syncTopicBody();
         openActivity("test", state.testDiff || "easy");
@@ -1771,11 +1987,37 @@
       return;
     }
 
+    if (e.target.closest("#act-theory-to-practice")) {
+      state.activityView = "practice";
+      renderActivity();
+      return;
+    }
+    if (e.target.closest("#act-theory-mark")) {
+      const ct = state.curriculumTopic;
+      if (!isCurriculumTopic(ct)) return;
+      if (getTopicProgress(ct, state.grade, state.subjectKey).theoryDone) return;
+      completeTopicStep("theory");
+      toast("Урок отмечен как изученный.");
+      state.activityView = "practice";
+      renderActivity();
+      return;
+    }
+    if (e.target.closest("#act-test-to-theory")) {
+      state.activityView = "theory";
+      renderActivity();
+      return;
+    }
+    if (e.target.closest("#btn-open-theory-lesson")) {
+      openActivity("theory", "easy");
+      return;
+    }
+
     const actTab = e.target.closest("#act-main-tabs [data-act-tab]");
     if (actTab) {
       const t = actTab.dataset.actTab;
       if (t === "theory") {
-        closeActivity();
+        state.activityView = "theory";
+        renderActivity();
         return;
       }
       if (t === "practice") {
@@ -1788,7 +2030,7 @@
           const lc = getLearningContent(state.curriculumTopic);
           const prog = getTopicProgress(state.curriculumTopic);
           if (lc && !Progress.isTestUnlocked(prog, lc)) {
-            toast("Тест закрыт: сначала зачти практику (счётчик N/M на экране темы).");
+            toast(learningPracticeGateToastText("tab"));
           } else if (isCurriculumTopic(state.curriculumTopic) && !lc) {
             toast("Контент по теме готовится.");
           }

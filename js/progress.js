@@ -77,15 +77,14 @@
       return 0;
     }
     if (isTestPassed(progress, content)) return 100;
-    if (isPracticePassed(progress, content) && progress?.theoryDone) return 70;
+    if (isPracticePassed(progress, content)) return 70;
     if (progress?.theoryDone) return 35;
     return 0;
   }
 
-  /** Допуск к тесту: теория отмечена, есть контент и практика зачтена по правилам. */
+  /** Допуск к тесту: практика зачтена по правилам (теорию можно пройти в любой момент). */
   function isTestUnlocked(progress, content) {
     if (!content) return false;
-    if (!progress?.theoryDone) return false;
     return isPracticePassed(progress, content);
   }
 

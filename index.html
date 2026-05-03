@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20260505" />
+  <link rel="stylesheet" href="css/app.css?v=20260509" />
 </head>
 <body>
   <div id="app">
@@ -80,10 +80,11 @@
         <div class="onb-step" data-onb-step="goal" hidden>
           <p class="onb-progress">Шаг 3 из 3</p>
           <h2 class="onb-title">Какая цель?</h2>
-          <p class="onb-sub">Подстроим подсказки и мотивацию — можно сменить позже в профиле.</p>
+          <p class="onb-sub">Подстроим подсказки и мотивацию — можно сменить позже в профиле. Цель можно пропустить.</p>
           <div class="onb-goal-grid" id="onb-goal-list"></div>
           <div class="onb-row-actions">
             <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
+            <button type="button" class="onb-btn-ghost" id="onb-skip-goal">Пропустить цель</button>
             <button type="button" class="onb-btn-main" id="onb-finish">В приложение</button>
           </div>
         </div>
@@ -330,7 +331,7 @@
             <button type="button" class="mode-tile mode-tile--on" data-mode="theory" role="tab" id="tab-mode-theory" aria-selected="true">
               <i data-lucide="book-open"></i>
               <span class="m-label">Теория</span>
-              <span class="m-sub">3/7</span>
+              <span class="m-sub">Урок · всегда доступна</span>
             </button>
             <button type="button" class="mode-tile" data-mode="practice" role="tab" id="tab-mode-practice" aria-selected="false">
               <i data-lucide="pencil"></i>
@@ -412,11 +413,11 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20260505"></script>
-  <script src="js/math-learning-content.js?v=20260505"></script>
-  <script src="js/math-curriculum-embed.js?v=20260505"></script>
-  <script src="js/progress.js?v=20260505"></script>
-  <script src="js/math-learning-kpi.js?v=20260505"></script>
-  <script src="js/app.js?v=20260505"></script>
+  <script src="js/data.js?v=20260509"></script>
+  <script src="js/math-learning-content.js?v=20260509"></script>
+  <script src="js/math-curriculum-embed.js?v=20260509"></script>
+  <script src="js/progress.js?v=20260509"></script>
+  <script src="js/math-learning-kpi.js?v=20260509"></script>
+  <script src="js/app.js?v=20260509"></script>
 </body>
 </html>
