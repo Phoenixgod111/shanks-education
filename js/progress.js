@@ -19,16 +19,27 @@
     return x !== null && typeof x === "object" && !Array.isArray(x);
   }
 
-  /** Сколько заданий практики зачтено (уникальные индексы с верным ответом). */
-  function practiceSolvedCount(progress) {
+  /** Сколько заданий практики зачтено (уникальные ключи с верным ответом). */
+  function practiceSolvedCount(progress, content) {
     if (!isPlainObject(progress?.practiceSolved)) return 0;
-    return Object.keys(progress.practiceSolved).filter((k) => progress.practiceSolved[k]).length;
+    const ps = progress.practiceSolved;
+    if (content && Number(content.schemaVersion) >= 2 && content.practiceByDifficulty) {
+      return Object.keys(ps).filter((k) => ps[k] && /^pr-[em]-\d+$/.test(k)).length;
+    }
+    return Object.keys(ps).filter((k) => ps[k]).length;
   }
 
-  /** Сколько вопросов теста решено верно (уникальные индексы). */
-  function testSolvedCount(progress) {
+  /** Сколько вопросов теста решено верно для полосы lane (или все ключи в legacy). */
+  function testSolvedCount(progress, content, lane) {
     if (!isPlainObject(progress?.testSolved)) return 0;
-    return Object.keys(progress.testSolved).filter((k) => progress.testSolved[k]).length;
+    const ts = progress.testSolved;
+    if (content && Number(content.schemaVersion) >= 2 && content.testByDifficulty) {
+      const d = lane || "med";
+      const letter = d === "easy" ? "e" : d === "hard" ? "h" : "m";
+      const prefix = `ts-${letter}-`;
+      return Object.keys(ts).filter((k) => ts[k] && k.startsWith(prefix)).length;
+    }
+    return Object.keys(ts).filter((k) => ts[k]).length;
   }
 
   function getPracticePassRule(content) {
@@ -44,19 +55,32 @@
    * Практика зачтена: N из M (по content.practicePassRule) или legacy practiceDone.
    */
   function isPracticePassed(progress, content) {
-    if (!content || !Array.isArray(content.practice)) return !!progress?.practiceDone;
+    if (!content || (!Array.isArray(content.practice) && !content.practiceByDifficulty)) return !!progress?.practiceDone;
     const rule = getPracticePassRule(content);
-    const n = practiceSolvedCount(progress);
+    const n = practiceSolvedCount(progress, content);
     if (rule && n >= rule.required) return true;
     if (progress?.practiceDone) return true;
     return false;
   }
 
   /**
-   * Тест пройден: все вопросы отвечены верно или legacy testDone.
+   * Тест пройден: для schema v2 — полоса medium в testByDifficulty; иначе legacy content.test.
    */
   function isTestPassed(progress, content) {
-    if (!content || !Array.isArray(content.test)) return !!progress?.testDone;
+    if (!content) return !!progress?.testDone;
+    if (Number(content.schemaVersion) >= 2 && content.testByDifficulty) {
+      const lane = "med";
+      const arr = content.testByDifficulty[lane] || [];
+      if (!Array.isArray(arr) || arr.length === 0) return !!progress?.testDone;
+      const letter = "m";
+      let allMarked = true;
+      for (let i = 0; i < arr.length; i += 1) {
+        if (!progress?.testSolved?.[`ts-${letter}-${i}`]) allMarked = false;
+      }
+      if (allMarked) return true;
+      return !!progress?.testDone;
+    }
+    if (!Array.isArray(content.test)) return !!progress?.testDone;
     const len = content.test.length;
     if (len === 0) return !!progress?.testDone;
     let allMarked = true;

@@ -138,7 +138,7 @@
     /** Allowlist интерактивных тем (KPI); подставляется из curriculum/math/learning-slice-ids.json в app.js */
     mathLearningKpiByGrade: {},
     /** Увеличивай при правках curriculum/math/*.json, чтобы сбросить кэш fetch */
-    curriculumMathVersion: "20260509",
+    curriculumMathVersion: "20260511",
     home: {
       taskDay: {
         title: "Реши 5 задач по алгебре и получи +50 XP",

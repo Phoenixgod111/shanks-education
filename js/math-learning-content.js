@@ -7,117 +7,685 @@
 
   window.SHANKS_MATH_LEARNING = {
     byTopicId: {
-      "g8-u01": {
-        objective: "Уметь решать неполные квадратные уравнения вида x² = d и ax² + c = 0, не теряя корень по знаку.",
-        workedExample: {
-          title: "Пример: x² − 9 = 0",
-          lines: [
-            "Перенесём −9 вправо: x² = 9.",
-            "Квадрат равен положительному числу — два действительных корня: x = √9 и x = −√9.",
-            "Итого x = 3 или x = −3. Проверка: (±3)² − 9 = 0.",
-          ],
+            "g8-u01": {
+        schemaVersion: 2,
+        lessonHero: {
+          eyebrow: "Интерактивный урок · 8 класс",
+          title: "Неполные квадратные уравнения",
+          subtitle: "Сведём задачи к виду x² = d и к вынесению x — без потери второго корня и нуля.",
+          lead: "Сегодня научимся решать уравнения, где не хватает части обычной формулы. Главное — не потерять второй корень и ноль."
         },
-        practicePassRule: { required: 3, total: 4 },
+        objective: "Уметь решать неполные квадратные уравнения вида x² = d и ax² + bx = 0, не теряя корни по знаку и ноль при вынесении x.",
+        skillTagCatalog: [
+          "recognize_quadratic",
+          "identify_incomplete_type",
+          "solve_x2_equals_d",
+          "handle_root_count",
+          "isolate_x_squared",
+          "factor_common_x",
+          "zero_product_rule",
+          "preserve_zero_root",
+          "sign_accuracy",
+          "verify_roots",
+          "answer_notation"
+        ],
+        misconceptions: [
+          {
+            id: "lost_negative_root",
+            text: "Ученик потерял отрицательный корень при x² = d.",
+            skillTags: ["handle_root_count", "answer_notation"],
+            theoryBlockId: "root-cases"
+          },
+          {
+            id: "negative_square_fake_roots",
+            text: "Ученик считает, что x² = −d при d > 0 имеет действительные корни «как у положительного».",
+            skillTags: ["handle_root_count"],
+            theoryBlockId: "root-cases"
+          },
+          {
+            id: "lost_zero_root",
+            text: "Ученик потерял x = 0 при вынесении общего множителя x.",
+            skillTags: ["factor_common_x", "zero_product_rule", "preserve_zero_root"],
+            theoryBlockId: "factor-x"
+          },
+          {
+            id: "sign_transfer_error",
+            text: "Ученик ошибся в знаке при переносе слагаемого или при умножении на −1 и получил неверное x² = d.",
+            skillTags: ["sign_accuracy", "isolate_x_squared"],
+            theoryBlockId: "x2-equals-d"
+          }
+        ],
         theory: [
           {
+            id: "intro",
             title: "Что такое квадратное уравнение",
-            body: "Уравнение вида ax² + bx + c = 0, где a ≠ 0, называют квадратным. Коэффициенты a, b, c — числа; x — неизвестное.",
+            body: "Уравнение вида ax² + bx + c = 0, где a ≠ 0, называют квадратным. В этой теме — неполные случаи: когда удобно свести к x² = d или к вынесению x.",
+            keyIdeas: ["a ≠ 0", "Неполное ≠ «простое» — всё равно квадратное"]
           },
           {
-            title: "Неполные уравнения",
-            body: "Если b = 0 или c = 0, уравнение неполное. Часто его решают через разложение на множители или изолирование x², а не через общую формулу.",
+            id: "x2-equals-d",
+            title: "Как решать x² = d",
+            body: "Изолируй x². Если d > 0, в ℝ два корня: x = √d и x = −√d. Если d = 0 — один корень x = 0. Если d < 0 — в ℝ нет решений.",
+            keyIdeas: ["Два знака при d > 0", "Проверка подстановкой"]
           },
           {
-            title: "Схема решения",
-            body: "Приведи к виду «что-то в квадрате = число», извлеки корни с учётом знака правой части. Не забывай: при x² = d при d < 0 действительных корней нет.",
+            id: "root-cases",
+            title: "Случаи d > 0, d = 0, d < 0",
+            body: "d > 0: два различных корня. d = 0: один (кратный) корень 0. d < 0: квадрат неотрицателен — действительных корней нет.",
+            keyIdeas: ["Не терять −√d", "Не придумывать корни при d < 0"]
           },
+          {
+            id: "factor-x",
+            title: "Уравнения вида ax² + bx = 0",
+            body: "Вынеси x: x(ax + b) = 0. Произведение ноль, если x = 0 или ax + b = 0. Ноль — полноценный корень, его часто «теряют».",
+            keyIdeas: ["Вынесение x", "Правило произведения ноль", "Сохранить x = 0"]
+          },
+          {
+            id: "mistakes",
+            title: "Типичные ошибки",
+            body: "Потерян минус у корня; забыли x = 0 после вынесения x; перепутали знак при переносе — и получилось неверное x² = d; решили x² = −9 в ℝ.",
+            keyIdeas: ["Проверка корней в исходнике", "Смысл знака d", "Перенос слагаемых меняет знак"]
+          }
         ],
+        workedExample: {
+          title: "Краткий разбор (классика)",
+          lines: [
+            "Пример x² − 9 = 0: x² = 9 ⇒ x = 3 или x = −3.",
+            "Ниже — пошаговый разобранный пример и задание с пропусками."
+          ]
+        },
+        workedExamples: [
+          {
+            id: "x2-minus-9",
+            title: "Пример: x² − 9 = 0",
+            skillTags: ["solve_x2_equals_d", "handle_root_count", "answer_notation"],
+            steps: [
+              { text: "x² − 9 = 0", rationale: "Сначала изолируем x²." },
+              { text: "x² = 9", rationale: "Перенесли −9 вправо." },
+              { text: "x = ±√9", rationale: "При положительном d два корня." },
+              { text: "x = 3 или x = −3", rationale: "Оба числа дают квадрат 9." }
+            ],
+            selfExplanationPrompts: [
+              "Почему корня два?",
+              "Почему нельзя оставить только x = 3?"
+            ]
+          }
+        ],
+        fadedExamples: [
+          {
+            id: "x2-minus-16-faded",
+            title: "Заполни шаги: x² − 16 = 0",
+            steps: [
+              { mode: "full", text: "x² − 16 = 0" },
+              { mode: "faded", prompt: "Перенеси −16 вправо", answer: "x² = 16" },
+              { mode: "faded", prompt: "Сколько корней и какие?", answer: "x = 4 или x = −4" }
+            ]
+          }
+        ],
+        lessonDialog: [
+          {
+            id: "intro-01",
+            blockId: "intro",
+            kind: "message",
+            speaker: "tutor",
+            text: "Смотри на уравнение как детектив: если главный герой x², это уже подозрение на квадратное. Но есть условие: коэффициент при x² не ноль.",
+            turns: [
+              { speaker: "tutor", text: "Смотри на уравнение как детектив: если главный герой x², это уже подозрение на квадратное." },
+              { speaker: "student_prompt", text: "То есть сначала ищу самую большую степень?" },
+              { speaker: "tutor", text: "Да. Не считаем количество иксов, смотрим именно степень и проверяем, что при x² коэффициент не ноль." }
+            ],
+            visual: {
+              kind: "equation_parts",
+              title: "Квадратное уравнение как конструктор",
+              parts: [
+                { expr: "ax²", label: "обязательная часть", required: true },
+                { expr: "bx", label: "может пропасть" },
+                { expr: "c", label: "может пропасть" }
+              ],
+              caption: "Если пропал ax², это уже не квадратное уравнение."
+            },
+            nextStudentText: "Окей, проверим на примерах?"
+          },
+          {
+            id: "intro-02",
+            blockId: "intro",
+            kind: "checkpoint",
+            type: "mcq",
+            mentorText: "Сначала проверим, что ты узнаёшь квадратное уравнение среди других записей.",
+            prompt: "Какое из уравнений точно квадратное?",
+            options: ["3x² − 5 = 0", "2x + 1 = 0", "x³ − 1 = 0"],
+            answerIndex: 0,
+            hint: "Подсказка: главная степень неизвестной должна быть 2, и нужен ненулевой коэффициент при x².",
+            hints: [
+              "Подсказка: главная степень неизвестной должна быть 2, и нужен ненулевой коэффициент при x².",
+              "Если сомневаешься — сравни, где есть только x или x³."
+            ],
+            feedback: {
+              correct: "Да. Есть x² и a ≠ 0.",
+              wrong: "Проверь степень: квадратное уравнение содержит x², а не только x или x³."
+            },
+            supportiveCorrect: "Отлично: ты отделяешь квадратное уравнение от линейного и кубического.",
+            nextStudentText: "Понял. А что значит неполное?",
+            fullSolution: [
+              "Квадратное уравнение в стандартном виде: ax² + bx + c = 0 с a ≠ 0.",
+              "3x² − 5 = 0: есть x², коэффициент при x² не ноль — это квадратное.",
+              "2x + 1 = 0 — линейное (нет x²). x³ − 1 = 0 — кубическое (старшая степень 3)."
+            ],
+            skillTags: ["recognize_quadratic"]
+          },
+          {
+            id: "intro-03",
+            blockId: "intro",
+            kind: "message",
+            speaker: "tutor",
+            text: "Слово «неполное» не значит «совсем лёгкое». Просто один кусок пропал: либо нет bx, либо нет c. От этого выбираем приём решения.",
+            turns: [
+              { speaker: "tutor", text: "Слово «неполное» не значит «совсем лёгкое». Просто один кусок пропал: либо нет bx, либо нет c." },
+              { speaker: "student_prompt", text: "А x² обязан остаться?" },
+              { speaker: "tutor", text: "Обязан. Если нет x², это уже другая история, не квадратное уравнение." }
+            ],
+            summary: {
+              title: "Как выбирать приём",
+              bullets: [
+                "Нет bx: сводим к x² = d.",
+                "Нет c: выносим x и не теряем x = 0.",
+                "x² должен остаться: иначе это не квадратное."
+              ]
+            },
+            nextStudentText: "Давай отличу квадратное от кубического"
+          },
+          {
+            id: "intro-04",
+            blockId: "intro",
+            kind: "checkpoint",
+            type: "mcq",
+            mentorText: "Теперь отличим «степень 2» от «степени 3» на примере.",
+            prompt: "Какое уравнение квадратное (старшая степень неизвестной 2), а не кубическое?",
+            options: ["3x² − 5 = 0", "x³ − 1 = 0", "x⁴ + 1 = 0"],
+            answerIndex: 0,
+            hint: "Спроси себя: какая самая высокая степень x в записи?",
+            hints: [
+              "Спроси себя: какая самая высокая степень x в записи?",
+              "Кубическое уравнение обязательно содержит x³ как старшую степень."
+            ],
+            feedback: {
+              correct: "Да: главная степень по x — 2 (есть x², нет обязательного x³ как у кубического).",
+              wrong: "Смотри на старшую степень: при x³ это уже уравнение третьей степени, не квадратное."
+            },
+            supportiveCorrect: "Хорошо: старшая степень — надёжный ориентир.",
+            nextStudentText: "Окей, покажи пример с корнями",
+            fullSolution: [
+              "Старшая степень по x в 3x² − 5 = 0 равна 2 — уравнение квадратное.",
+              "В x³ − 1 = 0 старшая степень 3 — это кубическое уравнение.",
+              "x⁴ + 1 = 0 — уравнение четвёртой степени (тоже не «квадратное» в школьном смысле определения)."
+            ],
+            skillTags: ["recognize_quadratic"]
+          },
+          {
+            id: "lesson-we-01",
+            blockId: "intro",
+            kind: "worked_example",
+            mentorText: "Разобранный пример: разберём целиком один классический случай — так проще переносить схему на свои задачи.",
+            turns: [
+              { speaker: "student_prompt", text: "А почему ответ не просто 3?" },
+              { speaker: "tutor", text: "Вот это главный вопрос урока. Потому что (-3)² тоже равно 9." }
+            ],
+            title: "Пример: x² − 9 = 0",
+            lines: [
+              "x² − 9 = 0 — изолируем x².",
+              "x² = 9 — перенесли −9 вправо.",
+              "В ℝ при d > 0 два корня: x = √9 и x = −√9.",
+              "Ответ: x = 3 или x = −3. Оба подходят при подстановке."
+            ],
+            visual: {
+              kind: "number_line",
+              title: "Почему появляются два корня",
+              points: [
+                { label: "−3", pos: 20 },
+                { label: "3", pos: 80 }
+              ],
+              note: "Обе точки при возведении в квадрат дают 9."
+            },
+            mistake: {
+              title: "Потерянный минус",
+              wrong: "x² = 9 ⇒ x = 3",
+              fix: "Правильно: x = 3 или x = −3."
+            },
+            nextStudentText: "А как понять, сколько корней?"
+          },
+          {
+            id: "x2-01",
+            blockId: "x2-equals-d",
+            kind: "message",
+            speaker: "tutor",
+            text: "Теперь схема x² = d: главный вопрос не «как извлечь корень», а сколько ответов не потерять.",
+            turns: [
+              { speaker: "tutor", text: "Теперь схема x² = d: главный вопрос не «как извлечь корень», а сколько ответов не потерять." },
+              { speaker: "griffon", text: "Гав-гав, я всегда сначала нюхаю знак d. Положительный, ноль или отрицательный?" }
+            ],
+            visual: {
+              kind: "root_cases",
+              title: "Светофор для x² = d",
+              cases: [
+                { label: "d > 0", roots: "x = ±√d", mood: "two", note: "два симметричных корня" },
+                { label: "d = 0", roots: "x = 0", mood: "one", note: "один корень" },
+                { label: "d < 0", roots: "нет корней в ℝ", mood: "none", note: "квадрат не бывает отрицательным" }
+              ],
+              caption: "Сначала знак d, потом ответ. Это экономит ошибки."
+            },
+            nextStudentText: "Хочу потренироваться на таком"
+          },
+          {
+            id: "lesson-fe-01",
+            blockId: "x2-equals-d",
+            kind: "faded_example",
+            mentorText: "Подсказки по шагам: сначала видно опору, затем попробуй дорисовать шаг сам — ответ можно раскрыть.",
+            title: "Мини-практика: x² − 16 = 0",
+            fadedSteps: [
+              { mode: "full", text: "x² − 16 = 0" },
+              { mode: "faded", prompt: "Перенеси −16 вправо", answer: "x² = 16" },
+              { mode: "faded", prompt: "Сколько корней в ℝ и какие?", answer: "x = 4 или x = −4" }
+            ],
+            nextStudentText: "Проверим, почему корня два?"
+          },
+          {
+            id: "x2-01b",
+            blockId: "x2-equals-d",
+            kind: "checkpoint",
+            type: "mcq",
+            mentorText: "Self-explanation: сформулируй причину словами, выбрав лучшее объяснение.",
+            prompt: "Почему у x² = 9 в ℝ два различных корня?",
+            options: [
+              "Потому что 9 > 0 и оба числа 3 и −3 в квадрате дают 9",
+              "Потому что у любого квадратного уравнения всегда ровно два корня в ℝ",
+              "Потому что √9 — одно число, второго корня нет"
+            ],
+            answerIndex: 0,
+            hint: "Подумай про знак ± и про то, что квадрат «убирает» знак у числа.",
+            hints: [
+              "Подумай про знак ± и про то, что квадрат «убирает» знак у числа.",
+              "В ℝ число корней у x² = d зависит от d: при d > 0 — два, при d = 0 — один, при d < 0 — ноль."
+            ],
+            feedback: {
+              correct: "Верно: при d > 0 симметрия ± даёт два различных действительных корня.",
+              wrong: "В ℝ число корней зависит от d и вида уравнения; для x² = d при d > 0 важны оба знака ±."
+            },
+            supportiveCorrect: "Сильное объяснение: ты связываешь d > 0 с двумя симметричными корнями.",
+            nextStudentText: "Окей. А если справа 9?",
+            fullSolution: [
+              "Уравнение x² = 9 означает: какое действительное число в квадрате даёт 9?",
+              "И 3, и −3 дают 9, поэтому в ℝ два различных корня.",
+              "Если бы мы ошибочно взяли только +3, потеряли бы второй корень — типичная ловушка."
+            ],
+            skillTags: ["handle_root_count", "solve_x2_equals_d"]
+          },
+          {
+            id: "x2-02",
+            blockId: "x2-equals-d",
+            kind: "checkpoint",
+            type: "mcq",
+            mentorText: "Закрепим подсчёт корней в ℝ для x² = d.",
+            prompt: "Сколько действительных корней у x² = 9 в ℝ?",
+            options: ["два", "одно", "ни одного"],
+            answerIndex: 0,
+            hint: "d положительно — значит, √d и −√d оба подходят.",
+            hints: ["d положительно — значит, √d и −√d оба подходят.", "Не путай «два корня» с «дважды один и тот же корень» — здесь два различных числа."],
+            feedback: {
+              correct: "Верно: d > 0 ⇒ два корня ±3.",
+              wrong: "Вспомни: при положительной правой части корня два — положительный и отрицательный."
+            },
+            supportiveCorrect: "Да, d > 0 ⇒ два симметричных корня.",
+            nextStudentText: "А если справа минус?",
+            fullSolution: ["x² = 9, d = 9 > 0 ⇒ в ℝ два корня: x = 3 и x = −3."],
+            skillTags: ["solve_x2_equals_d", "handle_root_count"]
+          },
+          {
+            id: "x2-03",
+            blockId: "x2-equals-d",
+            kind: "checkpoint",
+            type: "mcq",
+            mentorText: "И последняя проверка на знак d — без паники, это частый фильтр на контрольных.",
+            prompt: "Сколько действительных корней у x² = −4 в ℝ?",
+            options: ["ни одного", "два", "одно"],
+            answerIndex: 0,
+            hint: "Квадрат действительного числа неотрицателен — сравни левую и правую части.",
+            hints: [
+              "Квадрат действительного числа неотрицателен — сравни левую и правую части.",
+              "Можно ли подобрать x ∈ ℝ, чтобы x² стало −4?"
+            ],
+            feedback: {
+              correct: "Да: квадрат неотрицателен, отрицательная правая часть в ℝ не даёт решений.",
+              wrong: "Подумай: может ли x² стать отрицательным числом при действительном x?"
+            },
+            supportiveCorrect: "Верно: в ℝ у x² = −4 решений нет.",
+            nextStudentText: "А что с вынесением x?",
+            fullSolution: [
+              "Для любого x ∈ ℝ величина x² ≥ 0.",
+              "Правая часть −4 < 0, равенство x² = −4 в ℝ невозможно.",
+              "В комплексных числах появятся мнимые корни — в этой теме мы в ℝ."
+            ],
+            skillTags: ["handle_root_count"]
+          },
+          {
+            id: "factor-01",
+            blockId: "factor-x",
+            kind: "message",
+            speaker: "tutor",
+            text: "Второй тип неполного квадратного: в каждом слагаемом есть x. Хочется разделить на x, но так можно стереть корень x = 0.",
+            turns: [
+              { speaker: "tutor", text: "Теперь другая ловушка: x² − 3x = 0. В каждом слагаемом есть x." },
+              { speaker: "student_prompt", text: "Можно просто разделить на x?" },
+              { speaker: "griffon", text: "Р-р-р, стоп! Так чаще всего теряют ноль." },
+              { speaker: "tutor", text: "Не делим на x. Выносим его: x(x − 3) = 0, а потом раскрываем две ветки." }
+            ],
+            visual: {
+              kind: "factor_split",
+              title: "Произведение равно нулю",
+              start: "x(x − 3) = 0",
+              branches: ["x = 0", "x − 3 = 0 → x = 3"],
+              caption: "Ноль — не мусорный корень. Это полноценная ветка решения."
+            },
+            mistake: {
+              title: "Опасное деление на x",
+              wrong: "x² − 3x = 0 → делим на x → x = 3",
+              fix: "Правильно: x(x − 3) = 0 → x = 0 или x = 3."
+            },
+            nextStudentText: "Проверим, не потеряю ли ноль?"
+          },
+          {
+            id: "factor-02",
+            blockId: "factor-x",
+            kind: "checkpoint",
+            type: "mcq",
+            mentorText: "Проверим ловушку: какой корень чаще всего теряют, если делят на x?",
+            prompt: "Корни у x² − 3x = 0:",
+            options: ["0 и 3", "только 3", "только 0"],
+            answerIndex: 0,
+            hint: "Вынеси x за скобку и посмотри на две ветки произведения.",
+            hints: [
+              "Вынеси x за скобку и посмотри на две ветки произведения.",
+              "Если x(x − 3) = 0, то нулём может быть первый множитель или второй."
+            ],
+            feedback: {
+              correct: "Да: x = 0 или x = 3.",
+              wrong: "Не дели на x сразу: так можно потерять ветку x = 0."
+            },
+            supportiveCorrect: "Отлично. Ты сохранил ноль — это самая частая ловушка в этом типе.",
+            nextStudentText: "Окей, хочу задать вопрос",
+            fullSolution: [
+              "x² − 3x = 0",
+              "x(x − 3) = 0",
+              "Первая ветка: x = 0.",
+              "Вторая ветка: x − 3 = 0 → x = 3."
+            ],
+            skillTags: ["factor_common_x", "preserve_zero_root", "zero_product_rule"]
+          },
+          {
+            id: "lesson-ai-01",
+            blockId: "mistakes",
+            kind: "ai_question",
+            mentorText: "Перед практикой поймай одну мысль: что именно тебе сейчас мутно — знак, два корня или ноль при вынесении?",
+            text: "Запиши короткий вопрос по теме — одного предложения достаточно.",
+            placeholder: "Например: почему нельзя делить на x?",
+            summary: {
+              title: "Перед практикой держи в голове",
+              bullets: [
+                "Квадратное уравнение держится на x².",
+                "Для x² = d знак d решает число корней.",
+                "При вынесении x не теряем корень x = 0."
+              ]
+            },
+            nextStudentText: "Окей, к практике"
+          }
+        ],
+        practicePassRule: { required: 8, total: 10 },
+        practiceByDifficulty: {
+          easy: [
+            { id: "g8-u01-e01", title: "Неполное квадратное", prompt: "Неполное квадратное: в ax² + bx + c = 0 отсутствует b или c. Какой вариант подходит?", options: ["3x² − 5 = 0", "x³ − 1 = 0", "2x + 1 = 0", "x + x² + x³ = 0"], answerIndex: 0, explanation: "3x² − 5 = 0: есть x², a ≠ 0, нет линейного члена bx, значит это неполное квадратное.", skillTags: ["recognize_quadratic", "identify_incomplete_type"], theoryRefs: [{ blockId: "intro", label: "Определение и неполные случаи" }], misconceptionsRefIds: [], hints: ["Ищи x² и отсутствие bx при b = 0."], workedSolution: ["Есть x², a ≠ 0, нет линейного члена"] },
+            { id: "g8-u01-e02", title: "x² = d", prompt: "Сколько действительных корней у x² = 25?", options: ["два", "один", "ни одного", "бесконечно"], answerIndex: 0, explanation: "d > 0 ⇒ два корня ±5.", skillTags: ["solve_x2_equals_d", "handle_root_count", "identify_incomplete_type"], theoryRefs: [{ blockId: "root-cases", label: "Случаи d" }], misconceptionsRefIds: ["lost_negative_root"], hints: ["d положительно.", "Уравнение уже в виде x² = d — это неполный квадратный случай."], workedSolution: ["x = ±5"] },
+            { id: "g8-u01-e03", title: "Знак корня", prompt: "Корни x² = 7 в ℝ:", options: ["√7 и −√7", "только √7", "только −√7", "нет"], answerIndex: 0, explanation: "Два симметричных корня.", skillTags: ["answer_notation", "handle_root_count"], theoryRefs: [{ blockId: "x2-equals-d", label: "x² = d" }], misconceptionsRefIds: ["lost_negative_root"], hints: ["Не забудь минус перед корнем."], workedSolution: ["x = ±√7"] },
+            { id: "g8-u01-e04", title: "d = 0", prompt: "Корни x² = 0:", options: ["x = 0", "x = ±1", "нет корней", "два различных"], answerIndex: 0, explanation: "Один корень (кратности 2) x = 0.", skillTags: ["handle_root_count", "identify_incomplete_type"], theoryRefs: [{ blockId: "root-cases", label: "d = 0" }], misconceptionsRefIds: [], hints: ["Ноль — единственное решение.", "Вид x² = d при d = 0 — частный случай неполного квадратного."], workedSolution: ["x = 0"] },
+            { id: "g8-u01-e05", title: "d < 0", prompt: "x² = −4 в ℝ:", options: ["нет корней", "x = ±2", "x = 2", "x = −2"], answerIndex: 0, explanation: "Квадрат неотрицателен.", skillTags: ["handle_root_count"], theoryRefs: [{ blockId: "root-cases", label: "d < 0" }], misconceptionsRefIds: ["negative_square_fake_roots"], hints: ["Может ли x² быть отрицательным?"], workedSolution: ["В ℝ решений нет"] },
+            { id: "g8-u01-e06", title: "Вынесение x", prompt: "Корни x² − 3x = 0:", options: ["0 и 3", "только 3", "только 0", "±3"], answerIndex: 0, explanation: "x(x−3)=0.", skillTags: ["factor_common_x", "preserve_zero_root", "zero_product_rule"], theoryRefs: [{ blockId: "factor-x", label: "Вынесение x" }], misconceptionsRefIds: ["lost_zero_root"], hints: ["Вынеси x."], workedSolution: ["x = 0 или x = 3"] }
+          ],
+          med: [
+            {
+              id: "g8-u01-med-01",
+              kind: "steps",
+              difficulty: "med",
+              title: "Решите 2x² − 18 = 0",
+              prompt: "Решите уравнение пошагово (выбери верный следующий шаг).",
+              skillTags: ["isolate_x_squared", "solve_x2_equals_d", "answer_notation"],
+              theoryRefs: [{ blockId: "x2-equals-d", label: "Схема x² = d" }],
+              misconceptionsRefIds: ["lost_negative_root"],
+              steps: [
+                { id: "normalize", prompt: "Вырази x².", choices: ["x² = 9", "x² = 18", "x = 9"], correctIndex: 0, hints: ["Перенеси −18 вправо и раздели на 2."] },
+                { id: "roots", prompt: "Запиши корни.", choices: ["x = 3 или x = −3", "x = 3", "x = ±9"], correctIndex: 0, hints: ["При d > 0 два корня; в ответе обязательно оба знака ± (не только положительный)."] }
+              ],
+              workedSolution: ["2x² − 18 = 0", "2x² = 18", "x² = 9", "x = 3 или x = −3"]
+            },
+            {
+              id: "g8-u01-med-02",
+              kind: "steps",
+              difficulty: "med",
+              title: "3x² = 27",
+              prompt: "Пошагово:",
+              skillTags: ["isolate_x_squared", "solve_x2_equals_d"],
+              theoryRefs: [{ blockId: "x2-equals-d", label: "x² = d" }],
+              steps: [
+                { id: "s1", prompt: "x² после деления на 3:", choices: ["x² = 9", "x² = 27", "x = 9"], correctIndex: 0, hints: ["Раздели обе части на 3."] },
+                {
+                  id: "s2",
+                  prompt: "Корни:",
+                  choices: ["x = ±3", "x = 3", "нет корней"],
+                  correctIndex: 0,
+                  hints: ["При d > 0 в ℝ два корня; запиши оба знака ± перед числом."]
+                }
+              ],
+              workedSolution: ["x² = 9", "x = ±3"]
+            },
+            {
+              id: "g8-u01-med-03",
+              kind: "steps",
+              difficulty: "med",
+              title: "x² − 7 = 0",
+              prompt: "Шаги:",
+              skillTags: ["solve_x2_equals_d", "answer_notation"],
+              theoryRefs: [{ blockId: "x2-equals-d", label: "x² = d" }],
+              steps: [
+                { id: "a1", prompt: "x² = ?", choices: ["7", "−7", "√7"], correctIndex: 0, hints: ["Перенеси −7."] },
+                {
+                  id: "a2",
+                  prompt: "Ответ в ℝ:",
+                  choices: ["x = ±√7", "x = √7", "нет корней"],
+                  correctIndex: 0,
+                  hints: ["Два симметричных корня: обязательно ± перед √d при d > 0."]
+                }
+              ],
+              workedSolution: ["x² = 7", "x = ±√7"]
+            },
+            {
+              id: "g8-u01-med-04",
+              kind: "steps",
+              difficulty: "med",
+              title: "5x² = 5x",
+              prompt: "Приведи к произведению и реши:",
+              skillTags: ["factor_common_x", "preserve_zero_root", "zero_product_rule"],
+              theoryRefs: [{ blockId: "factor-x", label: "Вынесение x" }],
+              misconceptionsRefIds: ["lost_zero_root"],
+              steps: [
+                { id: "b1", prompt: "Перенеси всё в одну сторону и вынеси x:", choices: ["5x(x − 1) = 0", "5x² = 0", "x = 5"], correctIndex: 0, hints: ["5x² − 5x = 0"] },
+                {
+                  id: "b2",
+                  prompt: "Корни:",
+                  choices: ["x = 0 и x = 1", "только 1", "только 0"],
+                  correctIndex: 0,
+                  hints: ["Произведение = 0, если хотя бы один множитель 0; не теряй x = 0.", "Правило: из x·(ax+b)=0 следуют оба случая."]
+                }
+              ],
+              workedSolution: ["5x² − 5x = 0", "5x(x − 1) = 0", "x = 0 или x = 1"]
+            }
+          ],
+          hard: [
+            {
+              id: "g8-u01-h01",
+              title: "Ловушка со знаком",
+              prompt: "Решите −x² + 4 = 0 в ℝ.",
+              options: ["x = ±2", "x = 2", "нет корней", "x = ±4"],
+              answerIndex: 0,
+              explanation: "x² = 4 после умножения на −1 (или перенос).",
+              skillTags: ["sign_accuracy", "solve_x2_equals_d"],
+              theoryRefs: [{ blockId: "x2-equals-d", label: "x² = d" }],
+              hints: ["Приведи к x² = …", "Проверь знак при переносе через равенство."],
+              workedSolution: ["x² = 4", "x = ±2"],
+              misconceptionsRefIds: ["lost_negative_root", "sign_transfer_error"]
+            },
+            {
+              id: "g8-u01-h02",
+              title: "Смешанная форма",
+              prompt: "2x² − 8 = x² + 1",
+              options: ["x = ±3", "x = 3", "нет корней", "x = ±1"],
+              answerIndex: 0,
+              explanation: "x² = 9.",
+              skillTags: ["isolate_x_squared", "verify_roots"],
+              theoryRefs: [{ blockId: "intro", label: "Введение" }],
+              hints: ["Перенеси в одну сторону.", "Следи за знаками при переносе x² и свободного члена."],
+              workedSolution: ["x² = 9", "x = ±3"],
+              misconceptionsRefIds: ["sign_transfer_error"]
+            },
+            {
+              id: "g8-u01-h03",
+              title: "Расширение: не квадратное, та же техника",
+              stretch: true,
+              prompt: "Обобщение (не базовый вид ax²+bx+c=0): x³ − 4x² = 0 в ℝ. Вынеси x² и примени «произведение = 0».",
+              options: ["x = 0 (двойной) и x = 4", "только 4", "только 0", "x = ±2"],
+              answerIndex: 0,
+              explanation: "x²(x−4)=0 ⇒ x = 0 или x = 4; это тренировка вынесения и нуля, не определение темы.",
+              skillTags: ["factor_common_x", "preserve_zero_root", "zero_product_rule"],
+              theoryRefs: [{ blockId: "factor-x", label: "Вынесение" }],
+              misconceptionsRefIds: ["lost_zero_root"],
+              hints: ["x² — общий множитель; дальше как у неполного квадратного с вынесением x."],
+              workedSolution: ["x²(x−4)=0", "x = 0 или x = 4"]
+            }
+          ]
+        },
+        testByDifficulty: {
+          easy: [
+            { id: "g8-u01-te01", title: "База", prompt: "Неполное квадратное?", options: ["5x² − 1 = 0", "x + 1 = 0", "x³ = 1", "0 = 0"], answerIndex: 0, explanation: "Есть x², нет x.", skillTags: ["recognize_quadratic", "identify_incomplete_type"] },
+            { id: "g8-u01-te02", title: "Корни x²=36", prompt: "В ℝ:", options: ["6 и −6", "6", "36", "нет"], answerIndex: 0, explanation: "±6.", skillTags: ["handle_root_count", "solve_x2_equals_d"] },
+            { id: "g8-u01-te03", title: "x²=0", prompt: "Корень:", options: ["0", "нет", "±1", "2"], answerIndex: 0, explanation: "Один корень 0.", skillTags: ["handle_root_count"] }
+          ],
+          med: [
+            { id: "g8-u01-tm01", title: "Шаг", prompt: "Первый шаг для 4x² = 64:", options: ["x² = 16", "x = 16", "x² = 64", "x = 4"], answerIndex: 0, explanation: "Разделить на 4.", skillTags: ["isolate_x_squared", "solve_x2_equals_d"] },
+            { id: "g8-u01-tm02", title: "Корни", prompt: "x² = 16 ⇒", options: ["±4", "4", "−4", "8"], answerIndex: 0, explanation: "Два корня.", skillTags: ["answer_notation", "solve_x2_equals_d"] },
+            { id: "g8-u01-tm03", title: "Ноль", prompt: "x² − 5x = 0 ⇒ один из корней:", options: ["0", "5", "−5", "1"], answerIndex: 0, explanation: "x(x−5)=0.", skillTags: ["preserve_zero_root", "zero_product_rule"] },
+            { id: "g8-u01-tm04", title: "Отрицательная правая часть", prompt: "x² = −9 в ℝ", options: ["нет корней", "±3", "3", "−3"], answerIndex: 0, explanation: "d < 0.", skillTags: ["handle_root_count"], misconceptionsRefIds: ["negative_square_fake_roots"] }
+          ],
+          hard: [
+            {
+              id: "g8-u01-th01",
+              title: "Перенос (не базовый вид x² = d)",
+              prompt: "Сложнее базовой схемы: из (x−2)² = 9 следует x−2 = ±3, затем два линейных уравнения. Итог:",
+              options: ["x = 5 или x = −1", "только 5", "±3", "x = 2"],
+              answerIndex: 0,
+              explanation: "x−2=±3 ⇒ две точки на прямой.",
+              skillTags: ["verify_roots", "answer_notation", "isolate_x_squared"],
+              theoryRefs: [{ blockId: "x2-equals-d", label: "Идея двух корней" }],
+              misconceptionsRefIds: ["lost_negative_root"]
+            },
+            {
+              id: "g8-u01-th02",
+              title: "Знаки",
+              prompt: "−2x² + 50 = 0",
+              options: ["x = ±5", "x = 5", "нет", "±25"],
+              answerIndex: 0,
+              explanation: "x²=25.",
+              skillTags: ["sign_accuracy", "isolate_x_squared"],
+              misconceptionsRefIds: ["sign_transfer_error"]
+            },
+            { id: "g8-u01-th03", title: "Вынесение", prompt: "3x² − 12x = 0", options: ["0 и 4", "только 4", "±2", "12"], answerIndex: 0, explanation: "3x(x−4)=0.", skillTags: ["preserve_zero_root", "factor_common_x"], misconceptionsRefIds: ["lost_zero_root"] }
+          ]
+        },
         practice: [
           {
-            title: "Задание 1",
+            title: "Задание 1 (fallback)",
             prompt: "Решите уравнение x² − 9 = 0.",
             options: ["x = ±3", "x = 3", "x = −3", "корней нет"],
             answerIndex: 0,
-            explanation:
-              "x² = 9 даёт два корня: 3 и −3. Это связано с блоком «Схема решения»: сначала изолируем x², затем учитываем оба знака корня.",
-            hints: [
-              "Перенеси −9 вправо: получишь x² = 9.",
-              "У уравнения x² = 9 два корня в ℝ.",
-              "Не забудь отрицательный корень.",
-            ],
-            misconceptionsByWrongIndex: {
-              1: "Ты нашёл только положительный корень. Но (−3)² тоже равно 9.",
-              2: "Ты нашёл только отрицательный корень. Положительный 3 тоже подходит.",
-              3: "Корни есть: 9 > 0, значит x² = 9 имеет два действительных решения.",
-            },
-            theoryRefs: [{ label: "Схема решения", blockIndex: 2 }],
-            workedSolution: ["x² − 9 = 0", "x² = 9", "x = ±√9", "x = 3 или x = −3"],
+            explanation: "x² = 9 ⇒ два корня.",
+            hints: ["Перенеси −9.", "Два знака."],
+            theoryRefs: [{ label: "Схема x² = d", blockIndex: 1 }],
+            workedSolution: ["x² = 9", "x = ±3"],
+            misconceptionsByWrongIndex: { 1: "Нужны оба знака.", 2: "Только −3 — неполно.", 3: "Корни есть." }
           },
           {
             title: "Задание 2",
-            prompt: "Сколько действительных корней у уравнения 2x² + 8 = 0?",
-            options: ["два", "один", "ни одного", "бесконечно много"],
-            answerIndex: 2,
-            explanation: "2x² = −8 ⇒ x² = −4 — в действительных числах решений нет.",
-            hints: ["Сначала вырази x².", "Может ли квадрат вещественного числа быть отрицательным?"],
-            workedSolution: ["2x² + 8 = 0", "2x² = −8", "x² = −4", "В ℝ корней нет"],
+            prompt: "Сколько действительных корней у 2x² + 8 = 0?",
+            options: ["ни одного", "два", "один", "много"],
+            answerIndex: 0,
+            explanation: "x² = −4.",
+            hints: ["Вырази x²."],
+            workedSolution: ["x² = −4", "В ℝ нет"],
+            theoryRefs: [{ label: "Случаи d", blockIndex: 2 }]
           },
           {
             title: "Задание 3",
-            prompt: "Разложите x² − 5x = 0 и найдите корни.",
-            options: ["x = 0 и x = 5", "x = 5", "x = 0", "x = ±5"],
+            prompt: "Корни x² − 5x = 0:",
+            options: ["x = 0 и x = 5", "x = 5", "x = 0", "±5"],
             answerIndex: 0,
-            explanation: "x(x − 5) = 0 ⇒ x = 0 или x = 5.",
-            hints: ["Вынеси общий множитель x за скобки.", "Произведение равно нулю, если один из множителей ноль."],
-            workedSolution: ["x² − 5x = 0", "x(x − 5) = 0", "x = 0 или x = 5"],
+            explanation: "x(x−5)=0.",
+            hints: ["Вынеси x."],
+            workedSolution: ["x = 0 или x = 5"],
+            theoryRefs: [{ label: "Вынесение x", blockIndex: 3 }]
           },
           {
             title: "Задание 4",
             prompt: "Решите (x − 1)² = 4.",
             options: ["x = 3 и x = −1", "x = 3", "x = 1", "x = ±2"],
             answerIndex: 0,
-            explanation: "x − 1 = ±2 ⇒ x = 3 или x = −1.",
-            hints: ["Извлеки квадратный корень с двумя знаками: x − 1 = ±2.", "Реши два линейных уравнения."],
-            workedSolution: ["(x − 1)² = 4", "x − 1 = 2 или x − 1 = −2", "x = 3 или x = −1"],
-          },
+            explanation: "x−1 = ±2.",
+            hints: ["Два линейных уравнения."],
+            workedSolution: ["x = 3 или x = −1"],
+            theoryRefs: [{ label: "x² = d", blockIndex: 1 }]
+          }
         ],
         test: [
           {
             title: "Вопрос 1",
-            prompt: "Какое уравнение является неполным квадратным (a ≠ 0)?",
+            prompt: "Какое уравнение — неполное квадратное (a ≠ 0)?",
             options: ["3x² − 7 = 0", "x³ + x = 0", "2x + 5 = 0", "x² + x + x³ = 0"],
             answerIndex: 0,
-            explanation: "Нет линейного члена bx: b = 0.",
+            explanation: "Нет bx.",
+            skillTags: ["recognize_quadratic"]
           },
           {
             title: "Вопрос 2",
             prompt: "Корни x² = 16:",
             options: ["±4", "4", "−4", "256"],
             answerIndex: 0,
-            explanation: "x = ±√16 = ±4.",
-            misconceptionsByWrongIndex: {
-              1: "Типичная ошибка: взять только +4. У x² = d при d > 0 два корня: ±√d.",
-              2: "Только −4 тоже неполный ответ — не хватает положительного корня.",
-              3: "256 — это 16², не корни уравнения x² = 16.",
-            },
+            explanation: "±4.",
+            misconceptionsByWrongIndex: { 1: "Нужны оба знака.", 2: "Только −4 — мало.", 3: "256 — не корни." }
           },
           {
             title: "Вопрос 3",
             prompt: "x² + 4x = 0. Один из корней:",
             options: ["0", "4", "−4", "1"],
             answerIndex: 0,
-            explanation: "x(x + 4) = 0 ⇒ x = 0 или x = −4.",
+            explanation: "x(x+4)=0.",
+            skillTags: ["preserve_zero_root"]
           },
           {
             title: "Вопрос 4",
             prompt: "x² = −1 в ℝ:",
             options: ["нет корней", "x = 1", "x = −1", "x = ±1"],
             answerIndex: 0,
-            explanation: "Квадрат неотрицателен, −1 < 0.",
-          },
-        ],
+            explanation: "d < 0.",
+            misconceptionsRefIds: ["negative_square_fake_roots"]
+          }
+        ]
       },
-      "g8-u02": {
+
+"g8-u02": {
         objective: "Уметь по коэффициентам a, b, c найти дискриминант D, определить число действительных корней и применить формулу x = (−b ± √D) / (2a).",
         workedExample: {
           title: "Пример: x² − 5x + 6 = 0",

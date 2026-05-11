@@ -26,7 +26,13 @@ function assertPracticeRule(topicId, t) {
   const tot = rule.total;
   const plen = t.practice.length;
   assert(Number.isInteger(req) && req >= 1, `${topicId}: practicePassRule.required invalid`);
-  assert(Number.isInteger(tot) && tot === plen && req <= tot, `${topicId}: practicePassRule must satisfy required≤total and total===practice.length`);
+  if (topicId === "g8-u01" && Number(t.schemaVersion) >= 2 && t.practiceByDifficulty) {
+    const gate = (t.practiceByDifficulty.easy || []).length + (t.practiceByDifficulty.med || []).length;
+    assert(tot === gate, `${topicId}: practicePassRule.total must equal easy+med (${gate})`);
+    assert(req <= tot, `${topicId}: required ≤ total`);
+  } else {
+    assert(Number.isInteger(tot) && tot === plen && req <= tot, `${topicId}: practicePassRule must satisfy required≤total and total===practice.length`);
+  }
   const tlen = t.test.length;
   assert(tlen >= 3, `${topicId}: test must have ≥3 questions`);
   assert(Array.isArray(t.theory) && t.theory.length >= 2, `${topicId}: theory must have ≥2 blocks`);
@@ -91,9 +97,30 @@ for (const topicId of m8) {
   const t = byTopicId[topicId];
   const req = t.practicePassRule.required;
   const ps = {};
-  for (let i = 0; i < req; i += 1) ps[String(i)] = true;
+  if (topicId === "g8-u01" && Number(t.schemaVersion) >= 2 && t.practiceByDifficulty) {
+    let c = 0;
+    (t.practiceByDifficulty.easy || []).forEach((_, i) => {
+      if (c < req) {
+        ps[`pr-e-${i}`] = true;
+        c += 1;
+      }
+    });
+    (t.practiceByDifficulty.med || []).forEach((_, i) => {
+      if (c < req) {
+        ps[`pr-m-${i}`] = true;
+        c += 1;
+      }
+    });
+  } else {
+    for (let i = 0; i < req; i += 1) ps[String(i)] = true;
+  }
   const ts = {};
-  for (let i = 0; i < t.test.length; i += 1) ts[String(i)] = true;
+  if (topicId === "g8-u01" && Number(t.schemaVersion) >= 2 && t.testByDifficulty?.med) {
+    const arr = t.testByDifficulty.med;
+    for (let i = 0; i < arr.length; i += 1) ts[`ts-m-${i}`] = true;
+  } else {
+    for (let i = 0; i < t.test.length; i += 1) ts[String(i)] = true;
+  }
   const progFull = { theoryDone: true, practiceSolved: ps, testSolved: ts };
   assert(P.topicPct(progFull, t) === 100, `${topicId}: topicPct must reach 100% when theory+practice+test complete`);
   const progUnlocked = { theoryDone: false, practiceSolved: ps, testSolved: {} };

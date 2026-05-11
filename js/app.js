@@ -37,6 +37,18 @@
     curriculumTopic: null,
     /** Название модуля (блока) для выбранной подтемы */
     topicModuleTitle: null,
+    /** null — оглавление теории; число — индекс в последовательности блоков (теория → разобранные → faded) для g8-u01 v2 */
+    theoryNavSeq: null,
+    /** dialog | toc | reader — для тем с lessonDialog */
+    theoryPanel: "toc",
+    lessonDialogCursor: null,
+    theoryJumpBlockId: null,
+    /** fullscreen разбор задачи из практики/теста */
+    activityBreakdown: null,
+    /** попытки по id шага lessonDialog: { wrong, solutionRevealed, aiReplied } */
+    lessonStepAttempts: {},
+    /** Реплики ученика, которыми он сам продвигает диалог: { [stepId]: text } */
+    lessonStudentReplies: {},
   };
 
   let prefs = { favoritesByGrade: {}, initialized: false, topicProgress: {} };
@@ -553,6 +565,439 @@
     return m && typeof m === "object" ? m : null;
   }
 
+  function usesStructuredTheory(lc) {
+    return (
+      lc &&
+      Number(lc.schemaVersion) >= 2 &&
+      Array.isArray(lc.theory) &&
+      lc.theory.length > 0 &&
+      typeof lc.theory[0]?.id === "string" &&
+      lc.theory[0].id.trim().length > 0
+    );
+  }
+
+  function theoryBlockById(lc, id) {
+    return (lc.theory || []).find((b) => b && b.id === id) || null;
+  }
+
+  /** Порядок: блоки theory → workedExamples → fadedExamples */
+  function getTheoryReaderSequence(lc) {
+    const seq = [];
+    (lc.theory || []).forEach((b, index) => {
+      if (b && typeof b.id === "string" && b.id.trim()) seq.push({ kind: "theory", index });
+    });
+    (lc.workedExamples || []).forEach((_, index) => {
+      seq.push({ kind: "worked", index });
+    });
+    (lc.fadedExamples || []).forEach((_, index) => {
+      seq.push({ kind: "faded", index });
+    });
+    return seq;
+  }
+
+  function hasLessonDialog(lc) {
+    return lc && Array.isArray(lc.lessonDialog) && lc.lessonDialog.length > 0;
+  }
+
+  function findLessonDialogStartIndex(lessonDialog, blockId) {
+    if (!blockId || !Array.isArray(lessonDialog)) return 0;
+    const i = lessonDialog.findIndex((s) => s && s.blockId === blockId);
+    return i >= 0 ? i : 0;
+  }
+
+  function lessonDialogHasBlock(lessonDialog, blockId) {
+    if (!blockId || !Array.isArray(lessonDialog)) return false;
+    return lessonDialog.some((s) => s && s.blockId === blockId);
+  }
+
+  /** Индекс в getTheoryReaderSequence для блока theory с данным id (только kind === "theory"). */
+  function theoryReaderSeqIndexForBlock(lc, blockId) {
+    if (!blockId || !lc || !usesStructuredTheory(lc)) return null;
+    const seq = getTheoryReaderSequence(lc);
+    for (let si = 0; si < seq.length; si += 1) {
+      const item = seq[si];
+      if (item.kind !== "theory") continue;
+      const b = lc.theory[item.index];
+      if (b && b.id === blockId) return si;
+    }
+    return null;
+  }
+
+  function lessonDialogNormalizedKind(step) {
+    if (!step || typeof step !== "object") return "message";
+    if (step.kind === "checkpoint" && step.type === "mcq") return "multiple_choice";
+    return typeof step.kind === "string" ? step.kind : "message";
+  }
+
+  function lessonDialogMentorBody(step) {
+    const m = typeof step.mentorText === "string" ? step.mentorText.trim() : "";
+    const t = typeof step.text === "string" ? step.text.trim() : "";
+    return m || t;
+  }
+
+  function resetLessonStepAttempts() {
+    state.lessonStepAttempts = {};
+    state.lessonStudentReplies = {};
+  }
+
+  function getLessonStepAttempt(stepId) {
+    const id = String(stepId || "");
+    if (!state.lessonStepAttempts[id]) {
+      state.lessonStepAttempts[id] = { wrong: 0, solutionRevealed: false, aiReplied: false };
+    }
+    return state.lessonStepAttempts[id];
+  }
+
+  function openLessonCatalogFromDialog() {
+    state.theoryPanel = "toc";
+    state.lessonDialogCursor = null;
+    state.theoryNavSeq = null;
+    state.theoryJumpBlockId = null;
+    renderActivity();
+  }
+
+  function buildLessonAvatarAnya() {
+    const el = document.createElement("span");
+    el.className = "avatar-anya";
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("title", "Аня");
+    const img = document.createElement("img");
+    img.src = "assets/anya-mentor.jpg";
+    img.alt = "";
+    img.loading = "lazy";
+    el.appendChild(img);
+    return el;
+  }
+
+  function buildLessonAvatarGriffon() {
+    const el = document.createElement("span");
+    el.className = "avatar-griffon";
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("title", "Елиссей");
+    const img = document.createElement("img");
+    img.src = "assets/griffon-mentor.jpg";
+    img.alt = "";
+    img.loading = "lazy";
+    el.appendChild(img);
+    return el;
+  }
+
+  function lessonDialogAppendAnya(container, text, variant) {
+    const row = document.createElement("div");
+    row.className =
+      "act-lesson-row-anya-v9" + (variant === "compact" ? " act-lesson-row-anya-v9--compact" : "");
+    const avatar = buildLessonAvatarAnya();
+    const col = document.createElement("div");
+    col.className = "act-lesson-col-v9";
+    const name = document.createElement("span");
+    name.className = "act-lesson-name-v9";
+    name.textContent = "Аня";
+    const bubble = document.createElement("div");
+    bubble.className = "act-lesson-bubble-anya-v9";
+    bubble.textContent = text;
+    col.appendChild(name);
+    col.appendChild(bubble);
+    row.appendChild(avatar);
+    row.appendChild(col);
+    container.appendChild(row);
+    return row;
+  }
+
+  function lessonDialogAppendStudent(container, text) {
+    const row = document.createElement("div");
+    row.className = "act-lesson-row-student-v9";
+    const bubble = document.createElement("div");
+    bubble.className = "act-lesson-bubble-student-v9";
+    bubble.textContent = text;
+    const lab = document.createElement("span");
+    lab.className = "act-lesson-student-label-v9";
+    lab.textContent = "Ты";
+    row.appendChild(bubble);
+    row.appendChild(lab);
+    container.appendChild(row);
+  }
+
+  function lessonDialogAppendGriffon(container, text) {
+    const row = document.createElement("div");
+    row.className = "act-lesson-row-griffon-v9";
+    const avatar = buildLessonAvatarGriffon();
+    const col = document.createElement("div");
+    col.className = "act-lesson-col-v9";
+    const name = document.createElement("span");
+    name.className = "act-lesson-name-v9 act-lesson-name-griffon-v9";
+    name.textContent = "Елиссей";
+    const breed = document.createElement("span");
+    breed.className = "act-lesson-name-breed-v9";
+    breed.textContent = "брюссельский гриффон";
+    const bubble = document.createElement("div");
+    bubble.className = "act-lesson-bubble-griffon-v9";
+    bubble.textContent = text;
+    col.appendChild(name);
+    col.appendChild(breed);
+    col.appendChild(bubble);
+    row.appendChild(avatar);
+    row.appendChild(col);
+    container.appendChild(row);
+  }
+
+  function lessonDialogAppendTurns(container, step, compact) {
+    if (!Array.isArray(step?.turns) || step.turns.length === 0) return false;
+    step.turns.forEach((turn) => {
+      if (!turn || typeof turn.text !== "string" || !turn.text.trim()) return;
+      const speaker = String(turn.speaker || "tutor").trim();
+      if (speaker === "student" || speaker === "student_prompt") {
+        lessonDialogAppendStudent(container, turn.text.trim());
+      } else if (speaker === "griffon" || speaker === "coach") {
+        lessonDialogAppendGriffon(container, turn.text.trim());
+      } else {
+        lessonDialogAppendAnya(container, turn.text.trim(), compact ? "compact" : false);
+      }
+    });
+    return true;
+  }
+
+  function lessonDialogAppendSummary(container, summary) {
+    if (!summary || typeof summary !== "object") return;
+    const bullets = Array.isArray(summary.bullets)
+      ? summary.bullets.filter((x) => typeof x === "string" && x.trim())
+      : [];
+    if (!bullets.length && typeof summary.text !== "string") return;
+    const card = document.createElement("section");
+    card.className = "act-lesson-summary-v10";
+    const title = document.createElement("h3");
+    title.textContent = typeof summary.title === "string" && summary.title.trim() ? summary.title.trim() : "Главное";
+    card.appendChild(title);
+    if (bullets.length) {
+      const ul = document.createElement("ul");
+      bullets.forEach((b) => {
+        const li = document.createElement("li");
+        li.textContent = b.trim();
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+    } else {
+      const p = document.createElement("p");
+      p.textContent = summary.text.trim();
+      card.appendChild(p);
+    }
+    container.appendChild(card);
+  }
+
+  function lessonDialogAppendMistake(container, mistake) {
+    if (!mistake || typeof mistake !== "object") return;
+    const card = document.createElement("section");
+    card.className = "act-lesson-mistake-card-v10";
+    const label = document.createElement("p");
+    label.className = "act-lesson-mistake-label-v10";
+    label.textContent = "Ловушка";
+    const title = document.createElement("h3");
+    title.textContent = typeof mistake.title === "string" && mistake.title.trim() ? mistake.title.trim() : "Типичная ошибка";
+    card.appendChild(label);
+    card.appendChild(title);
+    if (typeof mistake.wrong === "string" && mistake.wrong.trim()) {
+      const wrong = document.createElement("p");
+      wrong.className = "act-lesson-mistake-wrong-v10";
+      wrong.textContent = mistake.wrong.trim();
+      card.appendChild(wrong);
+    }
+    if (typeof mistake.fix === "string" && mistake.fix.trim()) {
+      const fix = document.createElement("p");
+      fix.className = "act-lesson-mistake-fix-v10";
+      fix.textContent = mistake.fix.trim();
+      card.appendChild(fix);
+    }
+    container.appendChild(card);
+  }
+
+  function appendTextList(parent, className, items) {
+    const list = document.createElement("div");
+    list.className = className;
+    (items || []).forEach((item) => {
+      const el = document.createElement("div");
+      el.textContent = String(item || "");
+      list.appendChild(el);
+    });
+    parent.appendChild(list);
+    return list;
+  }
+
+  function lessonDialogAppendVisual(container, visual) {
+    if (!visual || typeof visual !== "object") return;
+    const kind = String(visual.kind || visual.type || "note").trim();
+    const card = document.createElement("figure");
+    card.className = `act-lesson-visual-card-v10 act-lesson-visual-card-v10--${kind}`;
+    if (typeof visual.title === "string" && visual.title.trim()) {
+      const title = document.createElement("figcaption");
+      title.className = "act-lesson-visual-title-v10";
+      title.textContent = visual.title.trim();
+      card.appendChild(title);
+    }
+
+    if (kind === "equation_parts") {
+      const formula = document.createElement("div");
+      formula.className = "act-lesson-equation-parts-v10";
+      const parts = Array.isArray(visual.parts) ? visual.parts : [];
+      parts.forEach((part) => {
+        const node = document.createElement("div");
+        node.className = "act-lesson-eq-part-v10" + (part.required ? " act-lesson-eq-part-v10--required" : "");
+        const expr = document.createElement("strong");
+        expr.textContent = part.expr || "";
+        const lab = document.createElement("span");
+        lab.textContent = part.label || "";
+        node.appendChild(expr);
+        node.appendChild(lab);
+        formula.appendChild(node);
+      });
+      card.appendChild(formula);
+    } else if (kind === "root_cases") {
+      const cases = document.createElement("div");
+      cases.className = "act-lesson-root-cases-v10";
+      (visual.cases || []).forEach((c) => {
+        const item = document.createElement("div");
+        item.className = `act-lesson-root-case-v10 act-lesson-root-case-v10--${c.mood || "neutral"}`;
+        const top = document.createElement("strong");
+        top.textContent = c.label || "";
+        const roots = document.createElement("span");
+        roots.textContent = c.roots || "";
+        const note = document.createElement("em");
+        note.textContent = c.note || "";
+        item.appendChild(top);
+        item.appendChild(roots);
+        item.appendChild(note);
+        cases.appendChild(item);
+      });
+      card.appendChild(cases);
+    } else if (kind === "number_line") {
+      const axis = document.createElement("div");
+      axis.className = "act-lesson-number-line-v10";
+      (visual.points || []).forEach((p) => {
+        const point = document.createElement("span");
+        point.className = "act-lesson-number-point-v10";
+        point.style.left = `${Number(p.pos) || 50}%`;
+        point.textContent = p.label || "";
+        axis.appendChild(point);
+      });
+      card.appendChild(axis);
+      if (typeof visual.note === "string") {
+        const note = document.createElement("p");
+        note.className = "act-lesson-visual-note-v10";
+        note.textContent = visual.note;
+        card.appendChild(note);
+      }
+    } else if (kind === "factor_split") {
+      const split = document.createElement("div");
+      split.className = "act-lesson-factor-split-v10";
+      const start = document.createElement("strong");
+      start.textContent = visual.start || "";
+      split.appendChild(start);
+      appendTextList(split, "act-lesson-factor-branches-v10", visual.branches || []);
+      card.appendChild(split);
+    } else if (kind === "equation_flow") {
+      appendTextList(card, "act-lesson-equation-flow-v10", visual.steps || []);
+    } else {
+      if (typeof visual.text === "string" && visual.text.trim()) {
+        const p = document.createElement("p");
+        p.className = "act-lesson-visual-note-v10";
+        p.textContent = visual.text.trim();
+        card.appendChild(p);
+      }
+    }
+
+    if (typeof visual.caption === "string" && visual.caption.trim()) {
+      const cap = document.createElement("p");
+      cap.className = "act-lesson-visual-caption-v10";
+      cap.textContent = visual.caption.trim();
+      card.appendChild(cap);
+    }
+    container.appendChild(card);
+  }
+
+  function lessonDialogAppendRichAddons(container, step) {
+    lessonDialogAppendVisual(container, step?.visual);
+    lessonDialogAppendSummary(container, step?.summary);
+    lessonDialogAppendMistake(container, step?.mistake);
+  }
+
+  function learningSliceTopicPosition(topicId, grade) {
+    const g = String(grade ?? state.grade ?? "8");
+    const slice = D.mathLearningKpiByGrade?.[g];
+    if (!Array.isArray(slice) || !slice.length) return { index: 1, total: 1 };
+    const i = slice.indexOf(topicId);
+    return { index: i >= 0 ? i + 1 : 1, total: slice.length };
+  }
+
+  function lessonShellBreadcrumb(lc) {
+    const topic = state.curriculumTopic;
+    const tid = topic && topic.id ? String(topic.id) : "";
+    const pos = learningSliceTopicPosition(tid, state.grade);
+    const tTitle = isCurriculumTopic(topic) ? topic.title || "Тема" : "Тема";
+    const n = (lc.lessonDialog && lc.lessonDialog.length) || 0;
+    const c = state.lessonDialogCursor == null ? 0 : Math.min(Math.max(0, state.lessonDialogCursor), n);
+    const lessonIx = Math.min(c + 1, Math.max(n, 1));
+    return `Тема ${pos.index}/${pos.total}: ${tTitle} → Урок ${lessonIx}/${n || 1}`;
+  }
+
+  function canOpenQuestionBreakdown(q) {
+    return !!(
+      (Array.isArray(q.theoryRefs) && q.theoryRefs.length > 0) ||
+      (Array.isArray(q.hints) && q.hints.length > 0) ||
+      (Array.isArray(q.workedSolution) && q.workedSolution.length > 0) ||
+      (Array.isArray(q.misconceptionsRefIds) && q.misconceptionsRefIds.length > 0)
+    );
+  }
+
+  function theoryChipLabelFromQuestion(lc, q) {
+    const ref = Array.isArray(q.theoryRefs) && q.theoryRefs[0] ? q.theoryRefs[0] : null;
+    if (!ref) return "Теория";
+    let b = null;
+    if (ref.blockId) b = theoryBlockById(lc, ref.blockId);
+    else if (Number.isInteger(ref.blockIndex)) b = (lc.theory || [])[ref.blockIndex];
+    return ref.label || (b && b.title) || "Теория";
+  }
+
+  function getPracticeLaneList(lc, diff) {
+    const d = diff === "easy" || diff === "med" || diff === "hard" ? diff : "med";
+    if (lc && lc.schemaVersion >= 2 && lc.practiceByDifficulty) {
+      const pack = lc.practiceByDifficulty[d];
+      return Array.isArray(pack) ? pack : [];
+    }
+    return lc?.practice || [];
+  }
+
+  function getTestLaneList(lc, diff) {
+    const d = diff === "easy" || diff === "med" || diff === "hard" ? diff : "easy";
+    if (lc && lc.schemaVersion >= 2 && lc.testByDifficulty) {
+      const pack = lc.testByDifficulty[d];
+      return Array.isArray(pack) ? pack : [];
+    }
+    return lc?.test || [];
+  }
+
+  function mergeSkillTagsIntoMastery(cur, tags) {
+    if (!Array.isArray(tags) || tags.length === 0) return {};
+    const prev = cur.masteryBySkill && typeof cur.masteryBySkill === "object" ? cur.masteryBySkill : {};
+    const next = { ...prev };
+    tags.forEach((tag) => {
+      if (typeof tag === "string" && tag.trim()) next[tag.trim()] = true;
+    });
+    return { masteryBySkill: next };
+  }
+
+  function persistLessonSkillMastery(topic, tags) {
+    if (!isCurriculumTopic(topic) || !Array.isArray(tags) || tags.length === 0) return;
+    const key = topicProgressKey(topic, state.grade, state.subjectKey);
+    const current = getTopicProgress(topic, state.grade, state.subjectKey);
+    const patch = mergeSkillTagsIntoMastery(current, tags);
+    if (!patch.masteryBySkill) return;
+    prefs.topicProgress[key] = {
+      ...current,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    savePrefs();
+    updateTopicModeDescriptors();
+  }
+
   /** Id тем для KPI среднего по математике (см. SHANKS_MATH_KPI + D.mathLearningKpiByGrade). */
   function getMathKpiIdSet(grade) {
     return KPI.getMathKpiIdSet ? KPI.getMathKpiIdSet(grade, D.mathLearningKpiByGrade) : null;
@@ -598,7 +1043,7 @@
       return;
     }
     const rule = Progress.getPracticePassRule(lc);
-    const n = Progress.practiceSolvedCount(prog);
+    const n = Progress.practiceSolvedCount(prog, lc);
     const req = rule ? rule.required : (lc.practice || []).length;
     const tot = rule ? rule.total : (lc.practice || []).length;
     if (th) th.textContent = prog.theoryDone ? "Изучено" : "Урок · всегда доступна";
@@ -624,7 +1069,7 @@
     const prog = getTopicProgress(ct, state.grade, state.subjectKey);
     const rule = Progress.getPracticePassRule(lc);
     const practiceLen = (lc.practice || []).length;
-    const n = Progress.practiceSolvedCount(prog);
+    const n = Progress.practiceSolvedCount(prog, lc);
     const req = rule ? rule.required : practiceLen;
     const tot = rule ? rule.total : practiceLen;
     if (!rule && practiceLen === 0) {
@@ -701,14 +1146,16 @@
     renderProfile();
   }
 
-  function recordPracticeCorrect(questionIndex) {
+  function recordPracticeCorrect(solKey, questionMeta) {
     const topic = state.curriculumTopic;
     const lc = getLearningContent(topic);
-    if (!lc || !Array.isArray(lc.practice)) return;
+    if (!lc) return;
+    const key = String(solKey);
     const cur = getTopicProgress(topic, state.grade, state.subjectKey);
     const ps = { ...(cur.practiceSolved && typeof cur.practiceSolved === "object" ? cur.practiceSolved : {}) };
-    ps[String(questionIndex)] = true;
-    const next = { ...cur, practiceSolved: ps };
+    ps[key] = true;
+    const masteryPatch = questionMeta && questionMeta.skillTags ? mergeSkillTagsIntoMastery(cur, questionMeta.skillTags) : {};
+    const next = { ...cur, practiceSolved: ps, ...masteryPatch };
     if (Progress.isPracticePassed(next, lc)) next.practiceDone = true;
     persistTopicProgress(topic, next);
     if (Progress.isPracticePassed(next, lc)) {
@@ -716,18 +1163,44 @@
     }
   }
 
-  function recordTestCorrect(questionIndex) {
+  function recordTestCorrect(solKey, questionMeta) {
     const topic = state.curriculumTopic;
     const lc = getLearningContent(topic);
-    if (!lc || !Array.isArray(lc.test)) return;
+    if (!lc) return;
+    const key = String(solKey);
     const cur = getTopicProgress(topic, state.grade, state.subjectKey);
     const ts = { ...(cur.testSolved && typeof cur.testSolved === "object" ? cur.testSolved : {}) };
-    ts[String(questionIndex)] = true;
-    const next = { ...cur, testSolved: ts };
-    const allOk = (lc.test || []).every((_, i) => next.testSolved[String(i)]);
-    if (allOk) next.testDone = true;
+    ts[key] = true;
+    const masteryPatch = questionMeta && questionMeta.skillTags ? mergeSkillTagsIntoMastery(cur, questionMeta.skillTags) : {};
+    const next = { ...cur, testSolved: ts, ...masteryPatch };
+    let allLegacy = false;
+    if (lc.schemaVersion >= 2 && lc.testByDifficulty) {
+      /* 100% темы — только средняя полоса (правило mastery) */
+      if (Progress.isTestPassed(next, lc)) next.testDone = true;
+    } else if (Array.isArray(lc.test)) {
+      allLegacy = lc.test.every((_, i) => next.testSolved[String(i)]);
+      if (allLegacy) next.testDone = true;
+    }
     persistTopicProgress(topic, next);
-    if (allOk) toast("Тест пройден — тема 100%.");
+    if (Progress.isTestPassed(next, lc)) {
+      toast("Тест пройден — тема 100%.");
+      return;
+    }
+    if (lc.schemaVersion >= 2 && lc.testByDifficulty) {
+      const lane = state.testDiff || "easy";
+      const letter = lane === "easy" ? "e" : lane === "hard" ? "h" : "m";
+      const laneList = getTestLaneList(lc, lane);
+      const laneDone = laneList.length > 0 && laneList.every((_, i) => next.testSolved[`ts-${letter}-${i}`]);
+      if (laneDone) {
+        toast(
+          lane === "med"
+            ? "Средний уровень теста пройден полностью."
+            : "Все вопросы этой сложности решены. Для 100% темы пройди средний тест."
+        );
+      } else toast("Верно — ответ засчитан.");
+      return;
+    }
+    if (allLegacy) toast("Тест пройден — тема 100%.");
     else toast("Верно — ответ засчитан.");
   }
 
@@ -784,6 +1257,7 @@
   }
 
   function closeActivity() {
+    state.activityBreakdown = null;
     $("#stack-activity")?.classList.remove("is-open");
     if (state.stack === "activity") state.stack = "topic";
     const ct = state.curriculumTopic;
@@ -822,6 +1296,11 @@
     closeActivity();
     state.curriculumTopic = null;
     state.topicModuleTitle = null;
+    state.theoryNavSeq = null;
+    state.theoryPanel = "toc";
+    state.lessonDialogCursor = null;
+    state.theoryJumpBlockId = null;
+    state.activityBreakdown = null;
     $("#stack-topic").classList.remove("is-open");
     state.stack = "subject-detail";
     iconsRefresh();
@@ -846,6 +1325,38 @@
       syncModeTiles();
     }
     state.activityView = view;
+    state.activityBreakdown = null;
+    if (view === "theory") {
+      const ct2 = state.curriculumTopic;
+      const lcc = isCurriculumTopic(ct2) ? getLearningContent(ct2) : null;
+      const jump = state.theoryJumpBlockId;
+      state.theoryJumpBlockId = null;
+      state.theoryNavSeq = null;
+      state.lessonDialogCursor = null;
+
+      if (lcc && hasLessonDialog(lcc)) {
+        if (jump && lessonDialogHasBlock(lcc.lessonDialog, jump)) {
+          state.theoryPanel = "dialog";
+          state.lessonDialogCursor = findLessonDialogStartIndex(lcc.lessonDialog, jump);
+        } else if (jump && usesStructuredTheory(lcc)) {
+          state.theoryPanel = "toc";
+          const si = theoryReaderSeqIndexForBlock(lcc, jump);
+          state.theoryNavSeq = si != null ? si : null;
+        } else {
+          state.theoryPanel = "dialog";
+          state.lessonDialogCursor = 0;
+        }
+        resetLessonStepAttempts();
+      } else {
+        state.theoryPanel = "toc";
+        if (jump && lcc && usesStructuredTheory(lcc)) {
+          const si = theoryReaderSeqIndexForBlock(lcc, jump);
+          state.theoryNavSeq = si != null ? si : null;
+        }
+      }
+    } else {
+      state.lessonDialogCursor = null;
+    }
     if (view === "practice") {
       if (diff) state.practiceDiff = diff;
     } else if (view === "test") {
@@ -860,10 +1371,11 @@
     iconsRefresh();
   }
 
-  function appendLearningQuestionCard(body, q, qi, isPractice, progress, lc) {
+  function appendLearningQuestionCard(body, q, qi, isPractice, progress, lc, solKeyOpt) {
+    const solKey = solKeyOpt != null ? String(solKeyOpt) : String(qi);
     const cardSolved = isPractice
-      ? !!progress.practiceSolved?.[String(qi)]
-      : !!progress.testSolved?.[String(qi)];
+      ? !!progress.practiceSolved?.[solKey]
+      : !!progress.testSolved?.[solKey];
     const allDone = isPractice
       ? Progress.isPracticePassed(progress, lc)
       : Progress.isTestPassed(progress, lc);
@@ -875,15 +1387,45 @@
       (q.misconceptionsByWrongIndex && typeof q.misconceptionsByWrongIndex === "object") ||
       (Array.isArray(q.theoryRefs) && q.theoryRefs.length > 0);
 
+    const stretchHtml = q.stretch
+      ? `<p class="act-stretch-pill-v8" role="note">Расширение · за пределами базового определения темы</p>`
+      : "";
+
+    const canBd = canOpenQuestionBreakdown(q);
+
+    function insertTheoryToolbar(targetCard) {
+      if (!canBd) return;
+      const row = document.createElement("div");
+      row.className = "act-practice-theory-row-v8";
+      const chip = document.createElement("span");
+      chip.className = "act-theory-chip-v8";
+      chip.textContent = `Теория: ${theoryChipLabelFromQuestion(lc, q)}`;
+      const bd = document.createElement("button");
+      bd.type = "button";
+      bd.className = "act-cta-btn-v8 act-cta-btn-v8--ghost act-bd-open-btn-v8";
+      bd.textContent = "Разобрать задачу";
+      bd.dataset.openBreakdown = "1";
+      bd.dataset.bdPractice = isPractice ? "1" : "0";
+      bd.dataset.bdIdx = String(qi);
+      bd.dataset.bdSol = solKey;
+      row.appendChild(chip);
+      row.appendChild(bd);
+      const firstStrong = targetCard.querySelector("strong");
+      if (firstStrong && firstStrong.parentNode) firstStrong.parentNode.insertBefore(row, firstStrong);
+      else targetCard.prepend(row);
+    }
+
     const card = document.createElement("div");
     card.className = "lesson-quiz-card" + (hasRich ? " lesson-quiz-card--rich" : "");
 
     if (!hasRich) {
       card.innerHTML = `
+          ${stretchHtml}
           <strong>${q.title}</strong>
           <p>${q.prompt}</p>
           <div class="lesson-answer-list"></div>
           <span class="lesson-explain"></span>`;
+      insertTheoryToolbar(card);
       const ex = card.querySelector(".lesson-explain");
       if (cardSolved || allDone) ex.textContent = q.explanation || "";
       const answerList = card.querySelector(".lesson-answer-list");
@@ -900,8 +1442,8 @@
         btn.addEventListener("click", () => {
           if (frozen) return;
           if (oi === q.answerIndex) {
-            if (isPractice) recordPracticeCorrect(qi);
-            else recordTestCorrect(qi);
+            if (isPractice) recordPracticeCorrect(solKey, q);
+            else recordTestCorrect(solKey, q);
           } else {
             toast("Почти. Выбери вариант, который согласуется с условием.");
           }
@@ -912,22 +1454,25 @@
       return;
     }
 
-    const theoryRefHtml =
-      Array.isArray(q.theoryRefs) && q.theoryRefs.length
-        ? `<p class="act-lm-theory-refs-v8">${q.theoryRefs
-            .map((r) => {
-              const b = (lc.theory || [])[r.blockIndex];
-              const lab = (r && r.label) || (b && b.title) || "Теория";
-              return b ? `<span>Связь с теорией: <strong>${lab}</strong> — «${b.title}»</span>` : "";
-            })
+    const misconceptionLines =
+      Array.isArray(q.misconceptionsRefIds) &&
+      q.misconceptionsRefIds.length &&
+      Array.isArray(lc.misconceptions)
+        ? q.misconceptionsRefIds
+            .map((mid) => (lc.misconceptions || []).find((m) => m && m.id === mid))
             .filter(Boolean)
-            .join(" ")}</p>`
+            .map((m) => `<li><em>${m.id}</em> — ${m.text}</li>`)
+            .join("")
         : "";
+    const misconceptionsHtml = misconceptionLines
+      ? `<details class="act-lm-misconceptions-v8"><summary>Типичные заблуждения (AI-ready)</summary><ul>${misconceptionLines}</ul></details>`
+      : "";
 
     card.innerHTML = `
+          ${stretchHtml}
           <strong>${q.title}</strong>
           <p>${q.prompt}</p>
-          ${theoryRefHtml}
+          ${misconceptionsHtml}
           <div class="lesson-answer-list"></div>
           <div class="act-lm-feedback-v8" role="status"></div>
           <div class="act-lm-solution-panel-v8" hidden></div>
@@ -936,6 +1481,8 @@
             <button type="button" class="act-lm-sec-btn-v8 act-lm-sec-btn-v8--primary" data-lm-show-solution ${hasSol ? "" : "hidden"}>Разбор решения</button>
           </div>
           <p class="lesson-explain act-lm-explain-v8"></p>`;
+
+    insertTheoryToolbar(card);
 
     const feedbackEl = card.querySelector(".act-lm-feedback-v8");
     const solutionPanel = card.querySelector(".act-lm-solution-panel-v8");
@@ -992,8 +1539,8 @@
           feedbackEl.textContent = "";
           if (q.explanation) ex.textContent = q.explanation;
           showSolutionLines();
-          if (isPractice) recordPracticeCorrect(qi);
-          else recordTestCorrect(qi);
+          if (isPractice) recordPracticeCorrect(solKey, q);
+          else recordTestCorrect(solKey, q);
         } else {
           const map = q.misconceptionsByWrongIndex;
           const msg =
@@ -1008,9 +1555,944 @@
     body.appendChild(card);
   }
 
+  function appendLearningStepPracticeCard(body, task, medIndex, progress, lc) {
+    const solKey = `pr-m-${medIndex}`;
+    const steps = task.steps || [];
+    if (steps.length === 0) return;
+    const solved = !!progress.practiceSolved?.[solKey];
+    const allPracticeDone = Progress.isPracticePassed(progress, lc);
+
+    const misconceptionLines =
+      Array.isArray(task.misconceptionsRefIds) &&
+      task.misconceptionsRefIds.length &&
+      Array.isArray(lc.misconceptions)
+        ? task.misconceptionsRefIds
+            .map((mid) => (lc.misconceptions || []).find((m) => m && m.id === mid))
+            .filter(Boolean)
+            .map((m) => `<li><em>${m.id}</em> — ${m.text}</li>`)
+            .join("")
+        : "";
+    const misconceptionsHtml = misconceptionLines
+      ? `<details class="act-lm-misconceptions-v8"><summary>Типичные заблуждения (AI-ready)</summary><ul>${misconceptionLines}</ul></details>`
+      : "";
+
+    const selfExHtml =
+      Array.isArray(task.selfExplanationPrompts) && task.selfExplanationPrompts.length
+        ? `<div class="act-self-explain-v8"><strong>Самообъяснение</strong><ul>${task.selfExplanationPrompts
+            .map((p) => `<li>${p}</li>`)
+            .join("")}</ul></div>`
+        : "";
+
+    const canBdSteps = canOpenQuestionBreakdown(task);
+
+    const card = document.createElement("div");
+    card.className = "lesson-quiz-card lesson-quiz-card--rich lesson-quiz-card--steps";
+    card.innerHTML = `
+      <strong>${task.title}</strong>
+      <p>${task.prompt}</p>
+      ${selfExHtml}
+      ${misconceptionsHtml}
+      <p class="act-step-meta-v8" data-step-meta></p>
+      <p class="act-step-prompt-v8" data-step-prompt></p>
+      <div class="lesson-answer-list" data-step-choices></div>
+      <div class="act-lm-feedback-v8" role="status" data-step-feedback></div>
+      <div class="act-lm-solution-panel-v8" hidden data-step-solution></div>
+      <div class="act-lm-actions-v8">
+        <button type="button" class="act-lm-sec-btn-v8" data-step-hint hidden>Подсказка</button>
+        <button type="button" class="act-lm-sec-btn-v8 act-lm-sec-btn-v8--primary" data-step-show-solution hidden>Разбор строк</button>
+      </div>`;
+
+    if (canBdSteps) {
+      const row = document.createElement("div");
+      row.className = "act-practice-theory-row-v8";
+      const chip = document.createElement("span");
+      chip.className = "act-theory-chip-v8";
+      chip.textContent = `Теория: ${theoryChipLabelFromQuestion(lc, task)}`;
+      const bd = document.createElement("button");
+      bd.type = "button";
+      bd.className = "act-cta-btn-v8 act-cta-btn-v8--ghost act-bd-open-btn-v8";
+      bd.textContent = "Разобрать задачу";
+      bd.dataset.openBreakdown = "1";
+      bd.dataset.bdPractice = "1";
+      bd.dataset.bdIdx = String(medIndex);
+      bd.dataset.bdSol = solKey;
+      bd.dataset.bdSteps = "1";
+      row.appendChild(chip);
+      row.appendChild(bd);
+      const tStrong = card.querySelector("strong");
+      if (tStrong && tStrong.parentNode) tStrong.parentNode.insertBefore(row, tStrong);
+      else card.prepend(row);
+    }
+
+    const metaEl = card.querySelector("[data-step-meta]");
+    const promptEl = card.querySelector("[data-step-prompt]");
+    const choicesEl = card.querySelector("[data-step-choices]");
+    const feedbackEl = card.querySelector("[data-step-feedback]");
+    const solutionPanel = card.querySelector("[data-step-solution]");
+    const hintBtn = card.querySelector("[data-step-hint]");
+    const solBtn = card.querySelector("[data-step-show-solution]");
+    const hasSol = Array.isArray(task.workedSolution) && task.workedSolution.length > 0;
+
+    let stepIdx = 0;
+    let hintStep = 0;
+
+    function showSolutionLines() {
+      if (!hasSol) return;
+      solutionPanel.hidden = false;
+      solutionPanel.innerHTML = `<strong>Пошаговый разбор</strong><ol>${task.workedSolution
+        .map((line) => `<li>${line}</li>`)
+        .join("")}</ol>`;
+    }
+
+    function renderCurrentStep() {
+      const frozen = solved || allPracticeDone;
+      const st = steps[stepIdx];
+      if (!st) return;
+      metaEl.textContent = `Шаг ${stepIdx + 1} из ${steps.length}`;
+      promptEl.textContent = st.prompt || "";
+      choicesEl.innerHTML = "";
+      feedbackEl.textContent = "";
+      const hints = st.hints;
+      const hasHints = Array.isArray(hints) && hints.length > 0;
+      if (hintBtn) {
+        hintBtn.hidden = !hasHints || frozen;
+        hintStep = 0;
+      }
+      if (solBtn) {
+        solBtn.hidden = !hasSol || frozen;
+      }
+      (st.choices || []).forEach((option, oi) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "lesson-answer-btn";
+        btn.textContent = option;
+        if (frozen) {
+          btn.disabled = true;
+          if (oi === st.correctIndex) btn.classList.add("lesson-answer-btn--ok");
+        }
+        btn.addEventListener("click", () => {
+          if (frozen) return;
+          if (oi === st.correctIndex) {
+            if (stepIdx + 1 >= steps.length) {
+              recordPracticeCorrect(solKey, task);
+              feedbackEl.textContent = "Все шаги верно.";
+              showSolutionLines();
+              if (solBtn) solBtn.hidden = true;
+              if (hintBtn) hintBtn.hidden = true;
+              choicesEl.querySelectorAll("button").forEach((b) => {
+                b.disabled = true;
+                if (b === btn) b.classList.add("lesson-answer-btn--ok");
+              });
+            } else {
+              stepIdx += 1;
+              renderCurrentStep();
+            }
+          } else {
+            feedbackEl.textContent = "Пока неверно — попробуй другой вариант или подсказку.";
+          }
+        });
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    if (hintBtn) {
+      hintBtn.addEventListener("click", () => {
+        const st = steps[stepIdx];
+        const hints = st?.hints;
+        if (!Array.isArray(hints) || !hints.length) return;
+        if (hintStep >= hints.length) {
+          feedbackEl.textContent = "Подсказки для этого шага закончились.";
+          return;
+        }
+        feedbackEl.textContent = hints[hintStep];
+        hintStep += 1;
+      });
+    }
+    if (solBtn) {
+      solBtn.addEventListener("click", () => {
+        showSolutionLines();
+        solBtn.hidden = true;
+      });
+    }
+
+    if (solved || allPracticeDone) {
+      showSolutionLines();
+      metaEl.textContent = `Шаги (${steps.length}) — зачтено`;
+      promptEl.textContent = "Задание выполнено.";
+      choicesEl.innerHTML = "";
+      if (hintBtn) hintBtn.hidden = true;
+      if (solBtn) solBtn.hidden = true;
+    } else {
+      renderCurrentStep();
+    }
+    body.appendChild(card);
+  }
+
+  function renderLessonDialog(body, foot, lc, progress) {
+    const ld = lc.lessonDialog;
+    let cursor = state.lessonDialogCursor;
+    if (cursor == null || cursor < 0) cursor = 0;
+    if (cursor > ld.length) cursor = ld.length;
+    state.lessonDialogCursor = cursor;
+
+    const nSteps = ld.length;
+
+    const shell = document.createElement("div");
+    shell.className = "act-lesson-shell-v9";
+
+    const header = document.createElement("header");
+    header.className = "act-lesson-header-v9";
+    const headLeft = document.createElement("div");
+    headLeft.className = "act-lesson-header-left-v9";
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "act-lesson-back-v9";
+    back.dataset.actBackLesson = "1";
+    back.setAttribute("aria-label", "Назад к теме");
+    back.innerHTML = '<i data-lucide="chevron-left"></i>';
+    const crumb = document.createElement("p");
+    crumb.className = "act-lesson-crumb-v9";
+    crumb.textContent = lessonShellBreadcrumb(lc);
+    headLeft.appendChild(back);
+    headLeft.appendChild(crumb);
+    const tocTop = document.createElement("button");
+    tocTop.type = "button";
+    tocTop.className = "act-lesson-toc-top-v9";
+    tocTop.dataset.lessonToc = "1";
+    tocTop.textContent = "Оглавление";
+    header.appendChild(headLeft);
+    header.appendChild(tocTop);
+    shell.appendChild(header);
+
+    const progWrap = document.createElement("div");
+    progWrap.className = "act-lesson-progress-v9";
+    progWrap.setAttribute("role", "progressbar");
+    progWrap.setAttribute("aria-valuemin", "0");
+    progWrap.setAttribute("aria-valuemax", String(nSteps));
+    progWrap.setAttribute("aria-valuenow", String(Math.min(cursor, nSteps)));
+    progWrap.setAttribute("aria-label", "Прогресс по шагам урока");
+    for (let si = 0; si < nSteps; si += 1) {
+      const seg = document.createElement("span");
+      seg.className = "act-lesson-seg-v9";
+      if (si < cursor) seg.classList.add("act-lesson-seg-v9--done");
+      else if (si === cursor && cursor < nSteps) seg.classList.add("act-lesson-seg-v9--current");
+      progWrap.appendChild(seg);
+    }
+    const progLab = document.createElement("div");
+    progLab.className = "act-lesson-progress-meta-v9";
+    progLab.textContent =
+      cursor >= nSteps ? "Урок завершён" : `Шаг ${cursor + 1} из ${nSteps}`;
+    progWrap.appendChild(progLab);
+    shell.appendChild(progWrap);
+
+    const content = document.createElement("div");
+    content.className = "act-lesson-content-v9";
+
+    const hist = document.createElement("div");
+    hist.className = "act-lesson-hist-v9";
+
+    const hero = lc.lessonHero;
+    if (cursor === 0 && hero && typeof hero === "object") {
+      const heroEl = document.createElement("div");
+      heroEl.className = "act-lesson-hero-v9";
+      if (typeof hero.eyebrow === "string" && hero.eyebrow.trim()) {
+        const eb = document.createElement("p");
+        eb.className = "act-lesson-hero-eyebrow-v9";
+        eb.textContent = hero.eyebrow.trim();
+        heroEl.appendChild(eb);
+      }
+      if (typeof hero.title === "string" && hero.title.trim()) {
+        const ht = document.createElement("h1");
+        ht.className = "act-lesson-hero-title-v9";
+        ht.textContent = hero.title.trim();
+        heroEl.appendChild(ht);
+      }
+      if (typeof hero.subtitle === "string" && hero.subtitle.trim()) {
+        const st = document.createElement("p");
+        st.className = "act-lesson-hero-subtitle-v9";
+        st.textContent = hero.subtitle.trim();
+        heroEl.appendChild(st);
+      }
+      if (typeof hero.lead === "string" && hero.lead.trim()) {
+        const ldEl = document.createElement("p");
+        ldEl.className = "act-lesson-hero-lead-v9";
+        ldEl.textContent = hero.lead.trim();
+        heroEl.appendChild(ldEl);
+      }
+      const cast = document.createElement("div");
+      cast.className = "act-lesson-cast-v10";
+      const anyaCard = document.createElement("div");
+      anyaCard.className = "act-lesson-cast-card-v10 act-lesson-cast-card-v10--anya";
+      anyaCard.appendChild(buildLessonAvatarAnya());
+      const anyaText = document.createElement("div");
+      anyaText.innerHTML =
+        '<strong>Аня</strong><span>ведёт урок спокойно, но без занудства</span>';
+      anyaCard.appendChild(anyaText);
+      const griffonCard = document.createElement("div");
+      griffonCard.className = "act-lesson-cast-card-v10 act-lesson-cast-card-v10--griffon";
+      griffonCard.appendChild(buildLessonAvatarGriffon());
+      const griffonText = document.createElement("div");
+      griffonText.innerHTML =
+        '<strong>Елиссей</strong><span>гав-гав, ловит типичные ошибки и подкидывает подсказки</span>';
+      griffonCard.appendChild(griffonText);
+      cast.appendChild(anyaCard);
+      cast.appendChild(griffonCard);
+      heroEl.appendChild(cast);
+      hist.appendChild(heroEl);
+    }
+
+    function formatFullSolution(step) {
+      const fs = step.fullSolution;
+      if (Array.isArray(fs) && fs.length) return fs.map((x) => String(x)).filter(Boolean);
+      if (typeof fs === "string" && fs.trim()) return [fs.trim()];
+      const c = step.feedback && typeof step.feedback.correct === "string" ? step.feedback.correct.trim() : "";
+      return c ? [c] : ["Разберём смысл на следующих шагах урока."];
+    }
+
+    function firstHint(step) {
+      if (typeof step.hint === "string" && step.hint.trim()) return step.hint.trim();
+      if (Array.isArray(step.hints) && step.hints.length && step.hints[0]) return String(step.hints[0]);
+      return null;
+    }
+
+    function secondNudge(step) {
+      if (Array.isArray(step.hints) && step.hints.length > 1 && step.hints[1]) return String(step.hints[1]);
+      return "Можно нажать «Давай разберём» — это не ошибка, а опора.";
+    }
+
+    /** Индекс правильного варианта MCQ: всегда целое, чтобы не ломать сравнение с индексом forEach (строгое ===). */
+    function lessonDialogMcqCorrectIndex(step) {
+      const opts = step.options || [];
+      const raw = step.answerIndex;
+      let n =
+        typeof raw === "number" && Number.isFinite(raw) ? Math.trunc(raw) : parseInt(String(raw ?? "").trim(), 10);
+      if (!Number.isInteger(n) || n < 0 || n >= opts.length) n = 0;
+      return n;
+    }
+
+    function appendPastStep(step) {
+      const nk = lessonDialogNormalizedKind(step);
+      if (nk === "message") {
+        if (!lessonDialogAppendTurns(hist, step, true)) {
+          lessonDialogAppendAnya(hist, lessonDialogMentorBody(step), "compact");
+        }
+        lessonDialogAppendRichAddons(hist, step);
+        const reply = state.lessonStudentReplies?.[step.id];
+        if (reply) lessonDialogAppendStudent(hist, reply);
+        return;
+      }
+      if (nk === "multiple_choice") {
+        const box = document.createElement("div");
+        box.className = "act-lesson-past-pill-v9";
+        const p = document.createElement("p");
+        p.className = "act-lesson-past-prompt-v9";
+        p.textContent = step.prompt || "";
+        const ok = document.createElement("p");
+        ok.className = "act-lesson-past-ok-v9";
+        ok.textContent = `Готово · ${step.feedback && step.feedback.correct ? step.feedback.correct : "Верно"}`;
+        box.appendChild(p);
+        box.appendChild(ok);
+        hist.appendChild(box);
+        const reply = state.lessonStudentReplies?.[step.id];
+        if (reply) lessonDialogAppendStudent(hist, reply);
+        return;
+      }
+      if (nk === "worked_example") {
+        lessonDialogAppendRichAddons(hist, step);
+        const box = document.createElement("div");
+        box.className = "act-lesson-past-pill-v9";
+        const t = document.createElement("p");
+        t.className = "act-lesson-past-title-v9";
+        t.textContent = step.title || "Разобранный пример";
+        box.appendChild(t);
+        hist.appendChild(box);
+        const reply = state.lessonStudentReplies?.[step.id];
+        if (reply) lessonDialogAppendStudent(hist, reply);
+        return;
+      }
+      if (nk === "faded_example") {
+        lessonDialogAppendRichAddons(hist, step);
+        const box = document.createElement("div");
+        box.className = "act-lesson-past-pill-v9";
+        const t = document.createElement("p");
+        t.className = "act-lesson-past-title-v9";
+        t.textContent = step.title || "Мини-практика с пропусками";
+        box.appendChild(t);
+        hist.appendChild(box);
+        const reply = state.lessonStudentReplies?.[step.id];
+        if (reply) lessonDialogAppendStudent(hist, reply);
+        return;
+      }
+      if (nk === "ai_question") {
+        lessonDialogAppendRichAddons(hist, step);
+        const box = document.createElement("div");
+        box.className = "act-lesson-past-pill-v9";
+        box.textContent = "Вопрос по теме записан.";
+        hist.appendChild(box);
+        return;
+      }
+      lessonDialogAppendAnya(hist, lessonDialogMentorBody(step) || "Шаг", "compact");
+    }
+
+    for (let i = 0; i < cursor; i += 1) {
+      appendPastStep(ld[i]);
+    }
+
+    function lessonDialogNextText(step, fallback) {
+      if (step && typeof step.nextStudentText === "string" && step.nextStudentText.trim()) {
+        return step.nextStudentText.trim();
+      }
+      return fallback || "Окей, что дальше?";
+    }
+
+    function appendNext(navEl, step, fallback) {
+      const nx = document.createElement("button");
+      nx.type = "button";
+      nx.className = "act-lesson-student-next-v10";
+      const nextText = lessonDialogNextText(step, fallback);
+      nx.textContent = nextText;
+      nx.addEventListener("click", () => {
+        if (step?.id) state.lessonStudentReplies[step.id] = nextText;
+        state.lessonDialogCursor = cursor + 1;
+        renderActivity();
+      });
+      navEl.appendChild(nx);
+    }
+
+    if (cursor < ld.length) {
+      const step = ld[cursor];
+      const nk = lessonDialogNormalizedKind(step);
+
+      if (nk === "message") {
+        const body = lessonDialogMentorBody(step);
+        if (!lessonDialogAppendTurns(hist, step, false) && body) lessonDialogAppendAnya(hist, body, false);
+        lessonDialogAppendRichAddons(hist, step);
+        const nav = document.createElement("div");
+        nav.className = "act-lesson-nav-v9 act-lesson-nav-sticky-v9";
+        appendNext(nav, step, "Понял. Что дальше?");
+        hist.appendChild(nav);
+      } else if (nk === "worked_example") {
+        const lead = lessonDialogMentorBody(step);
+        if (!lessonDialogAppendTurns(hist, step, false) && lead) lessonDialogAppendAnya(hist, lead, false);
+        lessonDialogAppendRichAddons(hist, step);
+        const card = document.createElement("div");
+        card.className = "act-lesson-worked-wrap-v9";
+        const h = document.createElement("h3");
+        h.className = "act-lesson-worked-head-v9";
+        h.textContent = step.title || "Разберём пример";
+        card.appendChild(h);
+        const track = document.createElement("div");
+        track.className = "act-lesson-worked-track-v9";
+        const lines = Array.isArray(step.lines)
+          ? step.lines
+          : Array.isArray(step.workedLines)
+            ? step.workedLines
+            : [];
+        lines.forEach((raw, idx) => {
+          const line = document.createElement("div");
+          line.className = "act-lesson-worked-step-v9";
+          const num = document.createElement("span");
+          num.className = "act-lesson-worked-num-v9";
+          num.textContent = String(idx + 1);
+          const bodyCol = document.createElement("div");
+          bodyCol.className = "act-lesson-worked-body-v9";
+          const s = String(raw);
+          const parts = s.split(" — ");
+          const eq = document.createElement("p");
+          eq.className = "act-lesson-worked-eq-v9";
+          eq.textContent = parts[0].trim();
+          bodyCol.appendChild(eq);
+          if (parts.length > 1) {
+            const rat = document.createElement("p");
+            rat.className = "act-lesson-worked-rat-v9";
+            rat.textContent = parts.slice(1).join(" — ").trim();
+            bodyCol.appendChild(rat);
+          }
+          line.appendChild(num);
+          line.appendChild(bodyCol);
+          track.appendChild(line);
+        });
+        card.appendChild(track);
+        hist.appendChild(card);
+        const nav = document.createElement("div");
+        nav.className = "act-lesson-nav-v9 act-lesson-nav-sticky-v9";
+        appendNext(nav, step, "Окей, покажи следующий шаг");
+        hist.appendChild(nav);
+      } else if (nk === "faded_example") {
+        const lead = lessonDialogMentorBody(step);
+        if (!lessonDialogAppendTurns(hist, step, false) && lead) lessonDialogAppendAnya(hist, lead, false);
+        lessonDialogAppendRichAddons(hist, step);
+        const card = document.createElement("div");
+        card.className = "act-lesson-faded-wrap-v9";
+        const h = document.createElement("h3");
+        h.className = "act-lesson-faded-head-v9";
+        h.textContent = step.title || "Попробуй восстановить шаг";
+        card.appendChild(h);
+        const sub = document.createElement("p");
+        sub.className = "act-lesson-faded-sub-v9";
+        sub.textContent = "Сначала опора — затем сам. Образец можно раскрыть.";
+        card.appendChild(sub);
+        const fsteps = Array.isArray(step.fadedSteps) ? step.fadedSteps : Array.isArray(step.steps) ? step.steps : [];
+        fsteps.forEach((st) => {
+          const row = document.createElement("div");
+          row.className = "act-lesson-faded-row-v9";
+          if (st.mode === "faded") {
+            const pr = document.createElement("p");
+            pr.className = "act-lesson-faded-q-v9";
+            pr.textContent = st.prompt || "";
+            const ans = document.createElement("div");
+            ans.className = "act-lesson-faded-answer-slot-v9";
+            ans.hidden = true;
+            ans.textContent = st.answer || "";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "act-lesson-faded-reveal-v9";
+            btn.textContent = "Показать образец";
+            btn.addEventListener("click", () => {
+              ans.hidden = false;
+              btn.hidden = true;
+            });
+            row.appendChild(pr);
+            row.appendChild(ans);
+            row.appendChild(btn);
+          } else {
+            const full = document.createElement("p");
+            full.className = "act-lesson-faded-full-v9";
+            full.textContent = st.text || "";
+            row.appendChild(full);
+          }
+          card.appendChild(row);
+        });
+        hist.appendChild(card);
+        lessonDialogAppendGriffon(hist, "Гав-гав: после образца сравни со своим ходом — так запоминается лучше.");
+        const nav = document.createElement("div");
+        nav.className = "act-lesson-nav-v9 act-lesson-nav-sticky-v9";
+        appendNext(nav, step, "Я сравнил. Идём дальше");
+        hist.appendChild(nav);
+      } else if (nk === "ai_question") {
+        lessonDialogAppendRichAddons(hist, step);
+        const att = getLessonStepAttempt(step.id);
+        const wrapAi = document.createElement("div");
+        wrapAi.className = "act-lesson-ai-final-v9";
+        const h2 = document.createElement("h2");
+        h2.className = "act-lesson-ai-title-v9";
+        h2.textContent = "Остались вопросы?";
+        wrapAi.appendChild(h2);
+        const intro = document.createElement("p");
+        intro.className = "act-lesson-ai-intro-v9";
+        intro.textContent =
+          "Можешь написать, что осталось непонятно. Позже здесь ответит AI-наставник — а пока это помогает сформулировать мысль.";
+        wrapAi.appendChild(intro);
+        if (!att.aiReplied) {
+          const mentorLine =
+            (typeof step.mentorText === "string" && step.mentorText.trim()) ||
+            (typeof step.text === "string" && step.text.trim()) ||
+            "";
+          if (mentorLine) {
+            const mh = document.createElement("div");
+            mh.className = "act-lesson-ai-mentor-host-v9";
+            lessonDialogAppendAnya(mh, mentorLine, false);
+            wrapAi.appendChild(mh);
+          }
+          const ta = document.createElement("textarea");
+          ta.className = "act-lesson-ai-input-v9";
+          ta.rows = 4;
+          ta.placeholder =
+            typeof step.placeholder === "string" && step.placeholder.trim()
+              ? step.placeholder.trim()
+              : "Задай вопрос по теме…";
+          ta.setAttribute("aria-label", "Вопрос по теме");
+          const row = document.createElement("div");
+          row.className = "act-lesson-ai-actions-v9";
+          const send = document.createElement("button");
+          send.type = "button";
+          send.className = "act-lesson-primary-nav-v9";
+          send.textContent = "Задать вопрос";
+          send.addEventListener("click", () => {
+            att.aiReplied = true;
+            renderActivity();
+          });
+          row.appendChild(send);
+          wrapAi.appendChild(ta);
+          wrapAi.appendChild(row);
+        } else {
+          lessonDialogAppendAnya(
+            wrapAi,
+            "Спасибо за вопрос! В будущем я смогу ответить точечно по твоей формулировке. Пока загляни в практику с разбором задачи — там закрепляется смысл.",
+            false
+          );
+          const side = document.createElement("div");
+          side.className = "act-lesson-ai-sidekick-v9";
+          lessonDialogAppendGriffon(
+            side,
+            "Р-р-р, я бы ещё раз проверил знак и ноль — это частые ловушки в неполных квадратных."
+          );
+          wrapAi.appendChild(side);
+          const nav = document.createElement("div");
+          nav.className = "act-lesson-nav-v9 act-lesson-nav-sticky-v9";
+          appendNext(nav, step, "Окей, к итогу");
+          wrapAi.appendChild(nav);
+        }
+        hist.appendChild(wrapAi);
+      } else if (nk === "multiple_choice") {
+        const lead = lessonDialogMentorBody(step);
+        if (!lessonDialogAppendTurns(hist, step, false)) {
+          lessonDialogAppendAnya(hist, lead || "Короткая проверка — выбери вариант, который лучше всего подходит.", false);
+        }
+        lessonDialogAppendRichAddons(hist, step);
+        const box = document.createElement("div");
+        box.className = "act-lesson-mcq-wrap-v9";
+        const head = document.createElement("p");
+        head.className = "act-lesson-mcq-prompt-v9";
+        head.textContent = step.prompt || "";
+        box.appendChild(head);
+        const list = document.createElement("div");
+        list.className = "lesson-answer-list act-lesson-reply-list-v9";
+        const stageZone = document.createElement("div");
+        stageZone.className = "act-lesson-mcq-stage-v9";
+        stageZone.setAttribute("role", "status");
+        const navEl = document.createElement("div");
+        navEl.className = "act-lesson-nav-v9 act-lesson-nav-sticky-v9";
+        const solPanel = document.createElement("div");
+        solPanel.className = "act-lesson-sol-break-v9";
+        solPanel.hidden = true;
+        box.appendChild(list);
+        box.appendChild(stageZone);
+        box.appendChild(solPanel);
+        box.appendChild(navEl);
+
+        const att = getLessonStepAttempt(step.id);
+        let answered = false;
+        const correctIdx = lessonDialogMcqCorrectIndex(step);
+
+        function renderSolutionLines() {
+          solPanel.innerHTML = "";
+          const cap = document.createElement("p");
+          cap.className = "act-lesson-sol-cap-v9";
+          cap.textContent = "Разбор построчно";
+          solPanel.appendChild(cap);
+          lessonDialogAppendAnya(solPanel, "Смотри, тут важно не потерять смысл шагов — потом так же разберёшь свою задачу.", "compact");
+          const lines = formatFullSolution(step);
+          const ul = document.createElement("ul");
+          ul.className = "act-lesson-sol-ul-v9";
+          lines.forEach((ln) => {
+            const li = document.createElement("li");
+            li.textContent = ln;
+            ul.appendChild(li);
+          });
+          solPanel.appendChild(ul);
+          solPanel.hidden = false;
+        }
+
+        function onCorrect(btn) {
+          answered = true;
+          stageZone.innerHTML = "";
+          lessonDialogAppendStudent(stageZone, btn.textContent);
+          const nice =
+            typeof step.supportiveCorrect === "string" && step.supportiveCorrect.trim()
+              ? step.supportiveCorrect.trim()
+              : step.feedback && step.feedback.correct
+                ? step.feedback.correct
+                : "Верно, так держать.";
+          lessonDialogAppendAnya(stageZone, nice, "compact");
+          list.querySelectorAll("button").forEach((x) => {
+            x.disabled = true;
+            if (x === btn) x.classList.add("lesson-answer-btn--ok");
+          });
+          if (Array.isArray(step.skillTags) && step.skillTags.length) {
+            const topic = state.curriculumTopic;
+            persistLessonSkillMastery(topic, step.skillTags);
+          }
+          const nx = document.createElement("button");
+          nx.type = "button";
+          nx.className = "act-lesson-student-next-v10";
+          const nextText = lessonDialogNextText(step, "Понял, что дальше?");
+          nx.textContent = nextText;
+          nx.addEventListener("click", () => {
+            if (step?.id) state.lessonStudentReplies[step.id] = nextText;
+            state.lessonDialogCursor = cursor + 1;
+            renderActivity();
+          });
+          navEl.appendChild(nx);
+          const ms = Number(step.autoAdvanceMs);
+          if (Number.isFinite(ms) && ms > 200) {
+            setTimeout(() => {
+              if (state.lessonDialogCursor === cursor && answered) {
+                state.lessonDialogCursor = cursor + 1;
+                renderActivity();
+              }
+            }, ms);
+          }
+        }
+
+        (step.options || []).forEach((opt, oi) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "lesson-answer-btn act-lesson-reply-btn-v9";
+          btn.textContent = opt;
+          if (att.solutionRevealed) {
+            btn.disabled = true;
+            if (oi === correctIdx) btn.classList.add("lesson-answer-btn--ok");
+          }
+          btn.addEventListener("click", () => {
+            if (answered || att.solutionRevealed) return;
+            if (oi === correctIdx) {
+              onCorrect(btn);
+              return;
+            }
+            att.wrong += 1;
+            if (att.wrong === 1) {
+              stageZone.innerHTML = "";
+              const h = firstHint(step);
+              const wrongFb =
+                step.feedback && typeof step.feedback.wrong === "string" ? step.feedback.wrong.trim() : "";
+              const line = h || wrongFb || "Гав-гав, я бы тут проверил старшую степень и коэффициент при x².";
+              lessonDialogAppendGriffon(stageZone, line);
+              return;
+            }
+            if (att.wrong >= 2 && !att.solutionRevealed) {
+              stageZone.innerHTML = "";
+              lessonDialogAppendGriffon(stageZone, secondNudge(step));
+              list.querySelectorAll("button").forEach((x) => {
+                x.disabled = true;
+              });
+              const deb = document.createElement("button");
+              deb.type = "button";
+              deb.className = "act-lesson-primary-nav-v9 act-lesson-debrief-pulse-v8 act-lesson-debrief-v9";
+              deb.textContent = "Давай разберём";
+              deb.addEventListener("click", () => {
+                att.solutionRevealed = true;
+                renderSolutionLines();
+                deb.remove();
+                list.querySelectorAll("button").forEach((x) => {
+                  x.disabled = true;
+                  const idx = Array.prototype.indexOf.call(list.children, x);
+                  if (idx === correctIdx) x.classList.add("lesson-answer-btn--ok");
+                });
+                const nx2 = document.createElement("button");
+                nx2.type = "button";
+                nx2.className = "act-lesson-student-next-v10";
+                const nextText2 = lessonDialogNextText(step, "Окей, теперь понял");
+                nx2.textContent = nextText2;
+                nx2.addEventListener("click", () => {
+                  if (step?.id) state.lessonStudentReplies[step.id] = nextText2;
+                  state.lessonDialogCursor = cursor + 1;
+                  renderActivity();
+                });
+                navEl.appendChild(nx2);
+              });
+              navEl.appendChild(deb);
+            }
+          });
+          list.appendChild(btn);
+        });
+
+        if (att.solutionRevealed) {
+          renderSolutionLines();
+          const nx3 = document.createElement("button");
+          nx3.type = "button";
+          nx3.className = "act-lesson-student-next-v10";
+          const nextText3 = lessonDialogNextText(step, "Окей, идём дальше");
+          nx3.textContent = nextText3;
+          nx3.addEventListener("click", () => {
+            if (step?.id) state.lessonStudentReplies[step.id] = nextText3;
+            state.lessonDialogCursor = cursor + 1;
+            renderActivity();
+          });
+          navEl.appendChild(nx3);
+        }
+
+        hist.appendChild(box);
+      } else {
+        lessonDialogAppendAnya(hist, lessonDialogMentorBody(step) || "Шаг", false);
+        const nav = document.createElement("div");
+        nav.className = "act-lesson-nav-v9 act-lesson-nav-sticky-v9";
+        appendNext(nav, step, "Продолжим?");
+        hist.appendChild(nav);
+      }
+    } else {
+      const sum = document.createElement("div");
+      sum.className = "act-lesson-complete-v9";
+      const p1 = document.createElement("h2");
+      p1.className = "act-lesson-complete-title-v9";
+      p1.textContent = "Урок пройден";
+      const p2 = document.createElement("p");
+      p2.className = "act-lesson-complete-lead-v9";
+      p2.textContent = "Дальше — практика с разбором задач. Оглавление всегда под рукой, если захочешь повторить теорию.";
+      sum.appendChild(p1);
+      sum.appendChild(p2);
+      hist.appendChild(sum);
+    }
+
+    content.appendChild(hist);
+    shell.appendChild(content);
+    body.appendChild(shell);
+
+    requestAnimationFrame(() => {
+      try {
+        hist.scrollTo({ top: hist.scrollHeight, behavior: "smooth" });
+      } catch {
+        hist.scrollTop = hist.scrollHeight;
+      }
+    });
+
+    if (cursor >= ld.length) {
+      foot.innerHTML = `
+        <div class="act-lesson-footer-end-v9">
+          <button type="button" class="act-lesson-footer-primary-v9" id="act-theory-to-practice">К практике</button>
+          <div class="act-lesson-footer-secondary-v9">
+            <button type="button" class="act-lesson-footer-ghost-v9" data-lesson-toc="1">Оглавление</button>
+            <button type="button" class="act-lesson-footer-quiet-v9" id="act-theory-mark"${
+              progress.theoryDone ? ' disabled aria-disabled="true"' : ""
+            }>${progress.theoryDone ? "Уже отмечено" : "Отметить как изучено"}</button>
+          </div>
+        </div>`;
+    } else {
+      foot.innerHTML = "";
+    }
+  }
+
+  function renderActivityBreakdown(body, foot, lc, progress) {
+    const bd = state.activityBreakdown;
+    if (!bd || !bd.solKey) return;
+    const topic = state.curriculumTopic;
+    let q = null;
+    if (bd.kind === "steps") {
+      q = bd.task;
+    } else if (bd.isPractice) {
+      const lane = bd.diff || state.practiceDiff || "med";
+      const arr = getPracticeLaneList(lc, lane);
+      q = arr[bd.qi];
+    } else {
+      const lane = bd.diff || state.testDiff || "easy";
+      const arr = getTestLaneList(lc, lane);
+      q = arr[bd.qi];
+    }
+    if (!q) {
+      state.activityBreakdown = null;
+      renderActivity();
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "act-breakdown-v8";
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "act-cta-btn-v8 act-cta-btn-v8--ghost act-breakdown-back-v8";
+    back.id = "act-breakdown-back";
+    back.textContent = "← К заданиям";
+    wrap.appendChild(back);
+
+    const head = document.createElement("div");
+    head.className = "act-bd-head-v8";
+    const optsPreview =
+      bd.kind === "steps"
+        ? Array.isArray(q.steps) && q.steps.length
+          ? `<ol class="act-bd-steps-preview-v8">${q.steps
+              .map(
+                (st, si) =>
+                  `<li><span class="act-bd-step-n-v8">${si + 1}.</span> ${st.prompt || ""}${
+                    Array.isArray(st.choices) && st.choices.length
+                      ? `<span class="act-bd-step-choices-v8">${st.choices.join(" · ")}</span>`
+                      : ""
+                  }</li>`
+              )
+              .join("")}</ol>`
+          : ""
+        : Array.isArray(q.options)
+          ? `<ul class="act-bd-options-preview-v8">${q.options.map((o) => `<li>${o}</li>`).join("")}</ul>`
+          : "";
+    head.innerHTML = `
+      <h3 class="act-bd-title-v8">${q.title || "Задание"}</h3>
+      <p class="act-bd-prompt-v8"><strong>Условие:</strong> ${q.prompt || ""}</p>
+      ${optsPreview}`;
+    wrap.appendChild(head);
+
+    const secAsk = document.createElement("section");
+    secAsk.className = "act-bd-section-v8";
+    secAsk.innerHTML = "<h4>Что спрашивают</h4>";
+    const pAsk = document.createElement("p");
+    pAsk.className = "act-bd-body-v8";
+    pAsk.textContent = q.prompt || "";
+    secAsk.appendChild(pAsk);
+    wrap.appendChild(secAsk);
+
+    if (Array.isArray(q.theoryRefs) && q.theoryRefs.length) {
+      const secTh = document.createElement("section");
+      secTh.className = "act-bd-section-v8";
+      secTh.innerHTML = "<h4>Теория по теме</h4>";
+      q.theoryRefs.forEach((r) => {
+        let b = null;
+        if (r && typeof r.blockId === "string" && r.blockId.trim()) b = theoryBlockById(lc, r.blockId);
+        else if (Number.isInteger(r?.blockIndex)) b = (lc.theory || [])[r.blockIndex];
+        if (!b) return;
+        const lab = (r && r.label) || b.title;
+        const ideas =
+          Array.isArray(b.keyIdeas) && b.keyIdeas.length
+            ? `<ul class="act-bd-ideas-v8">${b.keyIdeas.map((k) => `<li>${k}</li>`).join("")}</ul>`
+            : "";
+        const block = document.createElement("div");
+        block.className = "act-bd-theory-block-v8";
+        block.innerHTML = `<h5>${lab}</h5><p>${b.body}</p>${ideas}`;
+        secTh.appendChild(block);
+      });
+      wrap.appendChild(secTh);
+    }
+
+    if (Array.isArray(q.hints) && q.hints.length) {
+      const secH = document.createElement("section");
+      secH.className = "act-bd-section-v8";
+      secH.innerHTML = `<h4>Подсказки</h4><ol class="act-bd-hints-v8">${q.hints.map((h) => `<li>${h}</li>`).join("")}</ol>`;
+      wrap.appendChild(secH);
+    } else if (bd.kind === "steps" && Array.isArray(q.steps)) {
+      const flatHints = q.steps.flatMap((st) => (Array.isArray(st.hints) ? st.hints : []));
+      if (flatHints.length) {
+        const secH = document.createElement("section");
+        secH.className = "act-bd-section-v8";
+        secH.innerHTML = `<h4>Подсказки по шагам</h4><ol class="act-bd-hints-v8">${flatHints.map((h) => `<li>${h}</li>`).join("")}</ol>`;
+        wrap.appendChild(secH);
+      }
+    }
+
+    if (Array.isArray(q.workedSolution) && q.workedSolution.length) {
+      const secS = document.createElement("section");
+      secS.className = "act-bd-section-v8";
+      secS.innerHTML = `<h4>Пошаговый разбор</h4><ol class="act-bd-sol-v8">${q.workedSolution.map((l) => `<li>${l}</li>`).join("")}</ol>`;
+      wrap.appendChild(secS);
+    }
+
+    if (Array.isArray(q.misconceptionsRefIds) && q.misconceptionsRefIds.length && Array.isArray(lc.misconceptions)) {
+      const lines = q.misconceptionsRefIds
+        .map((mid) => (lc.misconceptions || []).find((m) => m && m.id === mid))
+        .filter(Boolean);
+      if (lines.length) {
+        const secM = document.createElement("section");
+        secM.className = "act-bd-section-v8";
+        secM.innerHTML = "<h4>Типичная ошибка</h4>";
+        lines.forEach((m) => {
+          const p = document.createElement("p");
+          p.className = "act-bd-body-v8";
+          p.textContent = m.text;
+          secM.appendChild(p);
+        });
+        wrap.appendChild(secM);
+      }
+    }
+
+    const stub = document.createElement("p");
+    stub.className = "act-ai-stub-v8 act-ai-stub-v8--bd";
+    stub.textContent = "Задать вопрос AI по этой задаче — скоро.";
+    wrap.appendChild(stub);
+
+    body.appendChild(wrap);
+    foot.innerHTML = "";
+  }
+
   function renderActivity() {
     const root = $("#stack-activity");
     if (!root) return;
+    if (root.dataset) delete root.dataset.lessonShell;
     let view = state.activityView;
     const learningTopic = isCurriculumTopic(state.curriculumTopic);
     const lcLearn = learningTopic ? getLearningContent(state.curriculumTopic) : null;
@@ -1075,18 +2557,32 @@
       const Lp = { easy: "Лёгкая", med: "Средняя", hard: "Тяжёлая" };
       const Lt = { easy: "Лёгкий", med: "Средний", hard: "Тяжёлый" };
       const L = view === "practice" ? Lp : Lt;
-      row.innerHTML = learningTopic
-        ? `<button type="button" class="act-diff-pill-v8 act-diff-pill-v8--on" data-act-diff="easy">Тренировка</button>`
-        : keys
+      if (!learningTopic) {
+        row.innerHTML = keys
+          .map((d) => {
+            const on = d === diff;
+            const isHard = d === "hard";
+            const inner = isHard
+              ? `<i data-lucide="lock" class="act-diff-lock"></i><span>${L[d]}</span>`
+              : L[d];
+            return `<button type="button" class="act-diff-pill-v8${on ? " act-diff-pill-v8--on" : ""}${isHard ? " act-diff-pill-v8--hard" : ""}" data-act-diff="${d}">${inner}</button>`;
+          })
+          .join("");
+      } else {
+        const triMode =
+          (view === "practice" && lcLearn?.practiceByDifficulty) ||
+          (view === "test" && lcLearn?.testByDifficulty);
+        if (triMode) {
+          row.innerHTML = keys
             .map((d) => {
               const on = d === diff;
-              const isHard = d === "hard";
-              const inner = isHard
-                ? `<i data-lucide="lock" class="act-diff-lock"></i><span>${L[d]}</span>`
-                : L[d];
-              return `<button type="button" class="act-diff-pill-v8${on ? " act-diff-pill-v8--on" : ""}${isHard ? " act-diff-pill-v8--hard" : ""}" data-act-diff="${d}">${inner}</button>`;
+              return `<button type="button" class="act-diff-pill-v8${on ? " act-diff-pill-v8--on" : ""}" data-act-diff="${d}">${L[d]}</button>`;
             })
             .join("");
+        } else {
+          row.innerHTML = `<button type="button" class="act-diff-pill-v8 act-diff-pill-v8--on" data-act-diff="med">Тренировка</button>`;
+        }
+      }
     }
 
     const diffWrap = root.querySelector(".act-diff-wrap-v8");
@@ -1103,6 +2599,10 @@
       const rule = lc ? Progress.getPracticePassRule(lc) : null;
       const practice = lc?.practice || [];
       const tests = lc?.test || [];
+      const triPractice = !!(Number(lc.schemaVersion) >= 2 && lc.practiceByDifficulty);
+      const triTest = !!(Number(lc.schemaVersion) >= 2 && lc.testByDifficulty);
+      const practiceLane = getPracticeLaneList(lc, diff);
+      const testLane = getTestLaneList(lc, diff);
       const isPractice = view === "practice";
       const pass = lc ? Progress.isPracticePassed(progress, lc) : false;
       const testPass = lc ? Progress.isTestPassed(progress, lc) : false;
@@ -1122,7 +2622,142 @@
         return;
       }
 
+      if (state.activityBreakdown && view !== "theory") {
+        renderActivityBreakdown(body, foot, lc, progress);
+        iconsRefresh();
+        return;
+      }
+
       if (view === "theory") {
+        if (hasLessonDialog(lc) && state.theoryPanel === "dialog") {
+          root.dataset.lessonShell = "1";
+          renderLessonDialog(body, foot, lc, progress);
+          iconsRefresh();
+          return;
+        }
+        if (usesStructuredTheory(lc)) {
+          const seq = getTheoryReaderSequence(lc);
+          if (state.theoryNavSeq != null && (state.theoryNavSeq < 0 || state.theoryNavSeq >= seq.length)) {
+            state.theoryNavSeq = null;
+          }
+          if (state.theoryNavSeq == null) {
+            const wrap = document.createElement("div");
+            wrap.className = "act-theory-lesson-v8";
+            const obj = lc.objective
+              ? `<p class="act-theory-objective-v8"><strong>Цель навыка.</strong> ${lc.objective}</p>`
+              : "";
+            const we = lc.workedExample;
+            const weHtml =
+              we && Array.isArray(we.lines) && we.lines.length
+                ? `<aside class="act-worked-example-v8 act-worked-example-v8--compact"><h4 class="act-we-title-v8">${we.title}</h4><p>${we.lines.join(" ")}</p></aside>`
+                : "";
+            const tocList = seq
+              .map((item, si) => {
+                let title = "";
+                if (item.kind === "theory") title = lc.theory[item.index]?.title || "";
+                else if (item.kind === "worked") title = lc.workedExamples[item.index]?.title || "";
+                else title = lc.fadedExamples[item.index]?.title || "";
+                return `<li><button type="button" class="act-theory-toc-btn-v8" data-theory-nav="${si}">${title}</button></li>`;
+              })
+              .join("");
+            const cat = Array.isArray(lc.skillTagCatalog)
+              ? lc.skillTagCatalog
+                  .map((tag) => {
+                    const ok = !!progress.masteryBySkill?.[tag];
+                    return `<li class="${ok ? "act-skill-done" : ""}">${ok ? "✓ " : ""}<span class="act-skill-tag">${tag}</span></li>`;
+                  })
+                  .join("")
+              : "";
+            const skillsHtml = cat
+              ? `<section class="act-skill-panel-v8"><h4 class="act-we-title-v8">Навыки темы (mastery)</h4><ul class="act-skill-list-v8">${cat}</ul></section>`
+              : "";
+            wrap.innerHTML = `
+              <p class="act-section-title-v8">Урок · оглавление</p>
+              ${obj}
+              <nav aria-label="Оглавление урока"><ul class="act-theory-toc-v8">${tocList}</ul></nav>
+              ${weHtml}
+              ${skillsHtml}`;
+            body.appendChild(wrap);
+            const lessonRestart = hasLessonDialog(lc)
+              ? `<button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-lesson-restart">Интерактивный урок</button>`
+              : "";
+            foot.innerHTML = `
+              ${lessonRestart}
+              <button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-theory-mark"${
+                progress.theoryDone ? ' disabled aria-disabled="true"' : ""
+              }>${progress.theoryDone ? "Теория уже отмечена" : "Отметить как изучено"}</button>
+              <button type="button" class="act-cta-btn-v8" id="act-theory-to-practice">К практике</button>`;
+            iconsRefresh();
+            return;
+          }
+          const item = seq[state.theoryNavSeq];
+          const reader = document.createElement("div");
+          reader.className = "act-theory-reader-v8";
+          let title = "";
+          let innerBody = "";
+          if (item.kind === "theory") {
+            const b = lc.theory[item.index];
+            title = b.title;
+            const ideas =
+              Array.isArray(b.keyIdeas) && b.keyIdeas.length
+                ? `<ul class="act-key-ideas-v8">${b.keyIdeas.map((k) => `<li>${k}</li>`).join("")}</ul>`
+                : "";
+            innerBody = `<p class="act-theory-body-v8">${b.body}</p>${ideas}`;
+          } else if (item.kind === "worked") {
+            const w = lc.workedExamples[item.index];
+            title = w.title;
+            const steps = (w.steps || [])
+              .map(
+                (s) =>
+                  `<li><span class="act-we-step-text">${s.text}</span><span class="act-we-step-rationale">${s.rationale || ""}</span></li>`
+              )
+              .join("");
+            const prompts =
+              Array.isArray(w.selfExplanationPrompts) && w.selfExplanationPrompts.length
+                ? `<div class="act-self-explain-v8"><strong>Самообъяснение</strong><ul>${w.selfExplanationPrompts
+                    .map((p) => `<li>${p}</li>`)
+                    .join("")}</ul></div>`
+                : "";
+            innerBody = `<ol class="act-worked-steps-v8">${steps}</ol>${prompts}`;
+          } else {
+            const f = lc.fadedExamples[item.index];
+            title = f.title;
+            innerBody = (f.steps || [])
+              .map((st, j) => {
+                if (st.mode === "full") {
+                  return `<div class="act-faded-row-v8"><span class="act-faded-badge">Шаг</span><p>${st.text}</p></div>`;
+                }
+                return `<div class="act-faded-row-v8 act-faded-row-v8--faded" data-faded-idx="${j}">
+                  <p><strong>${st.prompt || ""}</strong></p>
+                  <button type="button" class="act-lm-sec-btn-v8 act-faded-reveal-v8" data-faded-show="${j}">Показать ответ</button>
+                  <p class="act-faded-answer-v8" hidden data-faded-ans="${j}">${st.answer || ""}</p>
+                </div>`;
+              })
+              .join("");
+          }
+          reader.innerHTML = `
+            <p class="act-section-title-v8">Теория · экран чтения</p>
+            <h3 class="act-theory-reader-title-v8">${title}</h3>
+            ${innerBody}`;
+          body.appendChild(reader);
+          body.querySelectorAll("[data-faded-show]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const j = btn.getAttribute("data-faded-show");
+              const ans = body.querySelector(`[data-faded-ans="${j}"]`);
+              if (ans) ans.hidden = false;
+              btn.hidden = true;
+            });
+          });
+          const last = state.theoryNavSeq >= seq.length - 1;
+          foot.innerHTML = `
+            <button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-theory-back-toc">Назад к списку</button>
+            <button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-theory-next-block">${
+              last ? "К практике" : "Следующий блок"
+            }</button>
+            <button type="button" class="act-cta-btn-v8" id="act-theory-to-practice">К практике</button>`;
+          iconsRefresh();
+          return;
+        }
         const intro = document.createElement("div");
         intro.className = "act-theory-lesson-v8";
         const obj = lc.objective
@@ -1165,19 +2800,24 @@
       const banner = document.createElement("div");
       banner.className = "act-learning-hint-v8";
       if (isPractice) {
-        const n = Progress.practiceSolvedCount(progress);
+        const n = Progress.practiceSolvedCount(progress, lc);
         const req = rule ? rule.required : practice.length;
         const tot = rule ? rule.total : practice.length;
-        banner.innerHTML = `<p><strong>Практика:</strong> зачтено <strong>${n}</strong> из <strong>${tot}</strong> по плану. Для допуска к тесту нужно минимум <strong>${req}</strong> верных ответов (разные карточки).</p>`;
+        banner.innerHTML = `<p><strong>Практика:</strong> зачтено <strong>${n}</strong> из <strong>${tot}</strong> по плану. Для допуска к тесту нужно минимум <strong>${req}</strong> верных ответов (лёгкая и средняя полосы; тяжёлая — для уверенности).</p>`;
       } else if (!Progress.isTestUnlocked(progress, lc)) {
         banner.innerHTML = `<p><strong>Тест закрыт,</strong> пока не зачтена практика: минимум <strong>${
           rule ? rule.required : "?"
         }</strong> из <strong>${rule ? rule.total : "?"}</strong> верных заданий. Урок по теории доступен в любой момент — он помогает на тесте, но для замка важна именно практика.</p>`;
       } else if (testPass) {
-        banner.innerHTML = "<p><strong>Итоговый тест</strong> пройден. Тема на 100% — можно вернуться к экрану темы.</p>";
+        banner.innerHTML = "<p><strong>Итоговый тест</strong> (средний уровень) пройден. Тема на 100% — можно вернуться к экрану темы.</p>";
       } else {
-        const tn = Progress.testSolvedCount(progress);
-        banner.innerHTML = `<p><strong>Итоговый тест:</strong> верно <strong>${tn}</strong> из <strong>${tests.length}</strong>. Нужен верный ответ на каждый вопрос.</p>`;
+        const lane = state.testDiff || "easy";
+        const tn = triTest ? Progress.testSolvedCount(progress, lc, lane) : Progress.testSolvedCount(progress, lc);
+        const tlen = triTest ? testLane.length : tests.length;
+        const suffix = triTest
+          ? " Для 100% темы нужно верно ответить на все вопросы среднего уровня."
+          : " Нужен верный ответ на каждый вопрос.";
+        banner.innerHTML = `<p><strong>Тест:</strong> верно <strong>${tn}</strong> из <strong>${tlen}</strong> (текущая полоса).${suffix}</p>`;
       }
       body.appendChild(banner);
 
@@ -1193,22 +2833,40 @@
 
       const sec = document.createElement("p");
       sec.className = "act-section-title-v8";
-      sec.textContent = isPractice ? "Практика по теме" : "Итоговый тест";
+      const diffLabel = { easy: "лёгкая", med: "средняя", hard: "тяжёлая" };
+      const dl = diffLabel[diff] || diff;
+      sec.textContent = isPractice
+        ? triPractice
+          ? `Практика · ${dl} полоса`
+          : "Практика по теме"
+        : triTest
+          ? `Тест · ${dl} полоса`
+          : "Итоговый тест";
       body.appendChild(sec);
 
-      const questions = isPractice ? practice : tests;
+      const questions = isPractice ? practiceLane : testLane;
+      const pDiff = state.practiceDiff || "med";
+      const tDiff = state.testDiff || "easy";
+      const pLet = pDiff === "easy" ? "e" : pDiff === "hard" ? "h" : "m";
+      const tLet = tDiff === "easy" ? "e" : tDiff === "hard" ? "h" : "m";
       questions.forEach((q, qi) => {
-        appendLearningQuestionCard(body, q, qi, isPractice, progress, lc);
+        if (isPractice && q.kind === "steps") {
+          appendLearningStepPracticeCard(body, q, qi, progress, lc);
+        } else {
+          const solKey = isPractice ? `pr-${pLet}-${qi}` : `ts-${tLet}-${qi}`;
+          appendLearningQuestionCard(body, q, qi, isPractice, progress, lc, solKey);
+        }
       });
 
       if (!isPractice && testPass) {
-        const ok = Progress.testSolvedCount(progress);
+        const ok = Progress.testSolvedCount(progress, lc, "med");
+        const medLen = getTestLaneList(lc, "med").length;
         const sum = document.createElement("div");
         sum.className = "act-test-summary-v8";
         sum.innerHTML = `
           <h4 class="act-ts-head-v8">Итог</h4>
-          <p>Верно: <strong>${ok}</strong> из <strong>${tests.length}</strong>.</p>
-          <p class="act-ts-muted-v8">Если что-то сомневалось — повтори урок и разборы в практике. Обрати внимание на корни вида x² = d и на знак.</p>
+          <p>Средний тест: <strong>${ok}</strong> из <strong>${medLen}</strong>.</p>
+          <p class="act-ts-muted-v8">Лёгкий и тяжёлый уровни — дополнительная тренировка; 100% темы считается по среднему.</p>
           <button type="button" class="act-cta-btn-v8 act-cta-btn-v8--ghost" id="act-test-to-theory">Вернуться к теории</button>`;
         body.appendChild(sum);
       }
@@ -1716,20 +3374,47 @@
         openLesson.type = "button";
         openLesson.className = "lesson-action";
         openLesson.id = "btn-open-theory-lesson";
-        openLesson.textContent = "Открыть полноэкранный урок";
+        openLesson.textContent = "Приступить к уроку";
         list.appendChild(openLesson);
 
-        (lc.theory || []).forEach((block) => {
-          const row = document.createElement("div");
-          row.className = "theory-item theory-featured";
-          row.innerHTML = `
+        if (usesStructuredTheory(lc)) {
+          (lc.theory || []).forEach((block) => {
+            if (!block || !block.id) return;
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "theory-item theory-featured act-topic-theory-block-v8";
+            row.dataset.theoryBlockId = block.id;
+            const preview =
+              typeof block.body === "string" && block.body.length > 180
+                ? `${block.body.slice(0, 180)}…`
+                : block.body || "";
+            row.innerHTML = `
+            <div class="tf-top">
+              <strong>${block.title}</strong>
+              <span class="badge-read">Раздел</span>
+            </div>
+            <p class="theory-block-body">${preview}</p>`;
+            row.addEventListener("click", () => {
+              state.theoryJumpBlockId = block.id;
+              state.topicMode = "theory";
+              syncModeTiles();
+              openActivity("theory", "easy");
+            });
+            list.appendChild(row);
+          });
+        } else {
+          (lc.theory || []).forEach((block) => {
+            const row = document.createElement("div");
+            row.className = "theory-item theory-featured";
+            row.innerHTML = `
             <div class="tf-top">
               <strong>${block.title}</strong>
               <span class="badge-read">Теория</span>
             </div>
             <p class="theory-block-body">${block.body}</p>`;
-          list.appendChild(row);
-        });
+            list.appendChild(row);
+          });
+        }
         const action = document.createElement("button");
         action.type = "button";
         action.className = "lesson-action";
@@ -1764,6 +3449,11 @@
     closeActivity();
     const T = D.topic;
     state.curriculumTopic = topic && topic.title ? topic : null;
+    state.theoryNavSeq = null;
+    state.theoryPanel = "toc";
+    state.lessonDialogCursor = null;
+    state.theoryJumpBlockId = null;
+    state.activityBreakdown = null;
     state.topicModuleTitle =
       state.curriculumTopic && moduleTitle != null && String(moduleTitle).trim()
         ? String(moduleTitle).trim()
@@ -1982,14 +3672,91 @@
       }
     }
 
-    if (e.target.closest("#act-back")) {
+    if (e.target.closest("#act-back") || e.target.closest("[data-act-back-lesson]")) {
       closeActivity();
+      return;
+    }
+
+    const bdOpen = e.target.closest("[data-open-breakdown]");
+    if (bdOpen && $("#stack-activity")?.classList.contains("is-open")) {
+      const ct = state.curriculumTopic;
+      const lc = getLearningContent(ct);
+      if (!lc) return;
+      const isSteps = bdOpen.dataset.bdSteps === "1";
+      const isPractice = bdOpen.dataset.bdPractice === "1";
+      const qi = Number(bdOpen.dataset.bdIdx);
+      const solKey = String(bdOpen.dataset.bdSol || "");
+      if (isSteps) {
+        const laneDiff = state.practiceDiff || "med";
+        const lane = getPracticeLaneList(lc, laneDiff);
+        const task = lane[qi];
+        if (!task || !canOpenQuestionBreakdown(task)) return;
+        state.activityBreakdown = { kind: "steps", task, solKey, isPractice: true, qi };
+      } else {
+        const diff = isPractice ? state.practiceDiff || "med" : state.testDiff || "easy";
+        const arr = isPractice ? getPracticeLaneList(lc, diff) : getTestLaneList(lc, diff);
+        const q = arr[qi];
+        if (!q || !canOpenQuestionBreakdown(q)) return;
+        state.activityBreakdown = { qi, solKey, isPractice, diff };
+      }
+      renderActivity();
+      return;
+    }
+
+    if (e.target.closest("#act-breakdown-back")) {
+      state.activityBreakdown = null;
+      renderActivity();
+      return;
+    }
+
+    if (e.target.closest("#stack-activity.is-open [data-lesson-toc]")) {
+      openLessonCatalogFromDialog();
+      return;
+    }
+
+    if (e.target.closest("#act-lesson-restart")) {
+      resetLessonStepAttempts();
+      state.theoryPanel = "dialog";
+      state.lessonDialogCursor = 0;
+      state.theoryNavSeq = null;
+      state.theoryJumpBlockId = null;
+      renderActivity();
       return;
     }
 
     if (e.target.closest("#act-theory-to-practice")) {
       state.activityView = "practice";
       renderActivity();
+      return;
+    }
+    if (e.target.closest("#act-theory-back-toc")) {
+      state.theoryNavSeq = null;
+      renderActivity();
+      return;
+    }
+    if (e.target.closest("#act-theory-next-block")) {
+      const ct = state.curriculumTopic;
+      const lc = getLearningContent(ct);
+      if (!lc || !usesStructuredTheory(lc)) return;
+      const seq = getTheoryReaderSequence(lc);
+      if (state.theoryNavSeq == null) return;
+      const last = state.theoryNavSeq >= seq.length - 1;
+      if (last) {
+        state.activityView = "practice";
+        renderActivity();
+      } else {
+        state.theoryNavSeq += 1;
+        renderActivity();
+      }
+      return;
+    }
+    const theoryNavBtn = e.target.closest("[data-theory-nav]");
+    if (theoryNavBtn && $("#stack-activity")?.classList.contains("is-open")) {
+      const si = Number(theoryNavBtn.getAttribute("data-theory-nav"));
+      if (Number.isFinite(si)) {
+        state.theoryNavSeq = si;
+        renderActivity();
+      }
       return;
     }
     if (e.target.closest("#act-theory-mark")) {
@@ -2003,7 +3770,19 @@
       return;
     }
     if (e.target.closest("#act-test-to-theory")) {
+      const ct = state.curriculumTopic;
+      const lc = isCurriculumTopic(ct) ? getLearningContent(ct) : null;
+      state.activityBreakdown = null;
       state.activityView = "theory";
+      state.theoryNavSeq = null;
+      if (lc && hasLessonDialog(lc)) {
+        state.theoryPanel = "dialog";
+        state.lessonDialogCursor = 0;
+        resetLessonStepAttempts();
+      } else {
+        state.theoryPanel = "toc";
+        state.lessonDialogCursor = null;
+      }
       renderActivity();
       return;
     }
@@ -2016,11 +3795,24 @@
     if (actTab) {
       const t = actTab.dataset.actTab;
       if (t === "theory") {
+        const ct = state.curriculumTopic;
+        const lc = isCurriculumTopic(ct) ? getLearningContent(ct) : null;
+        state.theoryNavSeq = null;
+        state.activityBreakdown = null;
         state.activityView = "theory";
+        if (lc && hasLessonDialog(lc)) {
+          state.theoryPanel = "dialog";
+          state.lessonDialogCursor = 0;
+          resetLessonStepAttempts();
+        } else {
+          state.theoryPanel = "toc";
+          state.lessonDialogCursor = null;
+        }
         renderActivity();
         return;
       }
       if (t === "practice") {
+        state.activityBreakdown = null;
         state.activityView = "practice";
         renderActivity();
         return;
@@ -2036,6 +3828,7 @@
           }
           return;
         }
+        state.activityBreakdown = null;
         state.activityView = "test";
         renderActivity();
         return;
@@ -2047,6 +3840,7 @@
       const d = diffBtn.dataset.actDiff;
       if (state.activityView === "practice") state.practiceDiff = d;
       else state.testDiff = d;
+      state.activityBreakdown = null;
       renderActivity();
       return;
     }
@@ -2065,7 +3859,8 @@
           return;
         }
         if (state.activityView === "practice" && Progress.isPracticePassed(progress, lc)) {
-          openActivity("test", "easy");
+          const openTestDiff = lc.testByDifficulty ? "med" : "easy";
+          openActivity("test", openTestDiff);
           return;
         }
         if (state.activityView === "test" && !Progress.isTestUnlocked(progress, lc)) {

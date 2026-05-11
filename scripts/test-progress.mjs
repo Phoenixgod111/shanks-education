@@ -93,6 +93,20 @@ assert(P.isTestUnlocked({ theoryDone: true, practiceDone: true }, null) === fals
 assert(P.practiceSolvedCount({ practiceSolved: { 0: true, 1: false, 2: true } }) === 2, "practice count");
 assert(P.testSolvedCount({ testSolved: { 0: true, 1: true } }) === 2, "test count");
 
+const v2Content = {
+  schemaVersion: 2,
+  practiceByDifficulty: { easy: [{ id: "a" }], med: [{ id: "b" }], hard: [] },
+  testByDifficulty: { easy: [], med: [{ id: "t" }], hard: [] },
+};
+assert(
+  P.practiceSolvedCount({ practiceSolved: { "pr-e-0": true, "pr-h-0": true, "pr-m-0": true } }, v2Content) === 2,
+  "v2 practice count only easy+med keys"
+);
+assert(
+  P.testSolvedCount({ testSolved: { "ts-m-0": true, "ts-e-0": true } }, v2Content, "med") === 1,
+  "v2 test count med lane"
+);
+
 // getPracticePassRule
 const rule = P.getPracticePassRule(sampleContent);
 assert(rule.required === 3 && rule.total === 4, "getPracticePassRule");
