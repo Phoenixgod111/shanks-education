@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0-beta.1",
+  "status": "beta",
+  "note": "Каталог фиксирует только проверяемые библиографические поля. ISBN, редакции и страницы намеренно не указаны.",
+  "lines": [
+    {
+      "id": "g5-vilenkin",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 5,
+      "title": "Математика, 5 класс",
+      "authors": [
+        "Н. Я. Виленкин",
+        "В. И. Жохов",
+        "А. С. Чесноков",
+        "С. И. Шварцбурд"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g5-merzlyak",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 5,
+      "title": "Математика, 5 класс",
+      "authors": [
+        "А. Г. Мерзляк",
+        "В. Б. Полонский",
+        "М. С. Якир"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g5-dorofeev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 5,
+      "title": "Математика, 5 класс",
+      "authors": [
+        "Г. В. Дорофеев",
+        "И. Ф. Шарыгин"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g6-vilenkin",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 6,
+      "title": "Математика, 6 класс",
+      "authors": [
+        "Н. Я. Виленкин",
+        "В. И. Жохов",
+        "А. С. Чесноков",
+        "С. И. Шварцбурд"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g6-merzlyak",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 6,
+      "title": "Математика, 6 класс",
+      "authors": [
+        "А. Г. Мерзляк",
+        "В. Б. Полонский",
+        "М. С. Якир"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g6-dorofeev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 6,
+      "title": "Математика, 6 класс",
+      "authors": [
+        "Г. В. Дорофеев",
+        "И. Ф. Шарыгин"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g7-makarychev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 7,
+      "title": "Алгебра, 7 класс",
+      "authors": [
+        "Ю. Н. Макарычев",
+        "Н. Г. Миндюк",
+        "К. И. Нешков",
+        "С. Б. Суворова"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g7-merzlyak",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 7,
+      "title": "Алгебра, 7 класс",
+      "authors": [
+        "А. Г. Мерзляк",
+        "В. Б. Полонский",
+        "М. С. Якир"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g7-dorofeev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 7,
+      "title": "Алгебра, 7 класс",
+      "authors": [
+        "Г. В. Дорофеев",
+        "С. Б. Суворова",
+        "Е. А. Бунимович"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g8-makarychev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 8,
+      "title": "Алгебра, 8 класс",
+      "authors": [
+        "Ю. Н. Макарычев",
+        "Н. Г. Миндюк",
+        "К. И. Нешков",
+        "С. Б. Суворова"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g8-merzlyak",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 8,
+      "title": "Алгебра, 8 класс",
+      "authors": [
+        "А. Г. Мерзляк",
+        "В. Б. Полонский",
+        "М. С. Якир"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g8-dorofeev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 8,
+      "title": "Алгебра, 8 класс",
+      "authors": [
+        "Г. В. Дорофеев",
+        "С. Б. Суворова",
+        "Е. А. Бунимович"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g9-makarychev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 9,
+      "title": "Алгебра, 9 класс",
+      "authors": [
+        "Ю. Н. Макарычев",
+        "Н. Г. Миндюк",
+        "К. И. Нешков",
+        "С. Б. Суворова"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g9-merzlyak",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 9,
+      "title": "Алгебра, 9 класс",
+      "authors": [
+        "А. Г. Мерзляк",
+        "В. Б. Полонский",
+        "М. С. Якир"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g9-dorofeev",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 9,
+      "title": "Алгебра, 9 класс",
+      "authors": [
+        "Г. В. Дорофеев",
+        "С. Б. Суворова",
+        "Е. А. Бунимович"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g10-kolmogorov",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 10,
+      "title": "Алгебра и начала математического анализа, 10 класс",
+      "authors": [
+        "А. Н. Колмогоров",
+        "А. М. Абрамов",
+        "Ю. П. Дудницын"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g10-mordkovich",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 10,
+      "title": "Алгебра и начала математического анализа, 10 класс",
+      "authors": [
+        "А. Г. Мордкович",
+        "П. В. Семёнов"
+      ],
+      "publisher": "Мнемозина",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g10-nikolsky",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 10,
+      "title": "Алгебра и начала математического анализа, 10 класс",
+      "authors": [
+        "С. М. Никольский",
+        "М. К. Потапов",
+        "Н. Н. Решетников",
+        "А. В. Шевкин"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g11-kolmogorov",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 11,
+      "title": "Алгебра и начала математического анализа, 11 класс",
+      "authors": [
+        "А. Н. Колмогоров",
+        "А. М. Абрамов",
+        "Ю. П. Дудницын"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g11-mordkovich",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 11,
+      "title": "Алгебра и начала математического анализа, 11 класс",
+      "authors": [
+        "А. Г. Мордкович",
+        "П. В. Семёнов"
+      ],
+      "publisher": "Мнемозина",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    },
+    {
+      "id": "g11-nikolsky",
+      "kind": "textbook-line",
+      "subject": "math",
+      "grade": 11,
+      "title": "Алгебра и начала математического анализа, 11 класс",
+      "authors": [
+        "С. М. Никольский",
+        "М. К. Потапов",
+        "Н. Н. Решетников",
+        "А. В. Шевкин"
+      ],
+      "publisher": "Просвещение",
+      "status": "beta",
+      "metadataScope": "bibliographic-identification-only",
+      "omittedMetadata": [
+        "isbn",
+        "edition",
+        "pageRanges"
+      ],
+      "rightsRef": "bibliographic-metadata"
+    }
+  ],
+  "universal": {
+    "id": "math-universal-5-11",
+    "kind": "universal",
+    "subject": "math",
+    "grades": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "title": "Универсальная каноническая траектория 5–11",
+    "status": "beta",
+    "metadataScope": "project-authored",
+    "rightsRef": "shanks-original"
+  }
+}

@@ -33,3 +33,5 @@ t1.txt
 # Environment
 .env
 .env.local
+js/config.local.js
+supabase/.temp/

@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "id": "g10-mordkovich-trajectory",
+  "catalogId": "g10-mordkovich",
+  "subject": "math",
+  "grade": 10,
+  "version": "1.0.0-beta.1",
+  "status": "beta",
+  "mappingMethod": "canonical-order-beta",
+  "mapping": [
+    {
+      "sourcePosition": 1,
+      "canonicalTopicId": "g10-n01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 2,
+      "canonicalTopicId": "g10-n02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 3,
+      "canonicalTopicId": "g10-n03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 4,
+      "canonicalTopicId": "g10-n04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 5,
+      "canonicalTopicId": "g10-e01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 6,
+      "canonicalTopicId": "g10-e02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 7,
+      "canonicalTopicId": "g10-e03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 8,
+      "canonicalTopicId": "g10-e04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 9,
+      "canonicalTopicId": "g10-f01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 10,
+      "canonicalTopicId": "g10-f02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 11,
+      "canonicalTopicId": "g10-f03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 12,
+      "canonicalTopicId": "g10-f04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 13,
+      "canonicalTopicId": "g10-f05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 14,
+      "canonicalTopicId": "g10-t01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 15,
+      "canonicalTopicId": "g10-t02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 16,
+      "canonicalTopicId": "g10-t03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 17,
+      "canonicalTopicId": "g10-t04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 18,
+      "canonicalTopicId": "g10-t05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 19,
+      "canonicalTopicId": "g10-t06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 20,
+      "canonicalTopicId": "g10-t07",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 21,
+      "canonicalTopicId": "g10-u01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 22,
+      "canonicalTopicId": "g10-u02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 23,
+      "canonicalTopicId": "g10-u03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 24,
+      "canonicalTopicId": "g10-u04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 25,
+      "canonicalTopicId": "g10-g01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 26,
+      "canonicalTopicId": "g10-g02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 27,
+      "canonicalTopicId": "g10-g03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 28,
+      "canonicalTopicId": "g10-g04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 29,
+      "canonicalTopicId": "g10-g05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 30,
+      "canonicalTopicId": "g10-g06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 31,
+      "canonicalTopicId": "g10-g07",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 32,
+      "canonicalTopicId": "g10-p01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 33,
+      "canonicalTopicId": "g10-p02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 34,
+      "canonicalTopicId": "g10-p03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 35,
+      "canonicalTopicId": "g10-p04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 36,
+      "canonicalTopicId": "g10-p05",
+      "confidence": "editorial-beta"
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "g5-vilenkin-trajectory",
+  "catalogId": "g5-vilenkin",
+  "subject": "math",
+  "grade": 5,
+  "version": "1.0.0-beta.1",
+  "status": "beta",
+  "mappingMethod": "canonical-order-beta",
+  "mapping": [
+    {
+      "sourcePosition": 1,
+      "canonicalTopicId": "g5-n01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 2,
+      "canonicalTopicId": "g5-n02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 3,
+      "canonicalTopicId": "g5-n03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 4,
+      "canonicalTopicId": "g5-n04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 5,
+      "canonicalTopicId": "g5-n05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 6,
+      "canonicalTopicId": "g5-n06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 7,
+      "canonicalTopicId": "g5-n07",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 8,
+      "canonicalTopicId": "g5-n08",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 9,
+      "canonicalTopicId": "g5-n09",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 10,
+      "canonicalTopicId": "g5-f01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 11,
+      "canonicalTopicId": "g5-f02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 12,
+      "canonicalTopicId": "g5-f03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 13,
+      "canonicalTopicId": "g5-f04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 14,
+      "canonicalTopicId": "g5-f05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 15,
+      "canonicalTopicId": "g5-f06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 16,
+      "canonicalTopicId": "g5-w01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 17,
+      "canonicalTopicId": "g5-w02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 18,
+      "canonicalTopicId": "g5-w03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 19,
+      "canonicalTopicId": "g5-w04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 20,
+      "canonicalTopicId": "g5-g01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 21,
+      "canonicalTopicId": "g5-g02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 22,
+      "canonicalTopicId": "g5-g03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 23,
+      "canonicalTopicId": "g5-g04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 24,
+      "canonicalTopicId": "g5-g05",
+      "confidence": "editorial-beta"
+    }
+  ]
+}

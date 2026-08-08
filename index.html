@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/app.css?v=20260511" />
+  <link rel="stylesheet" href="css/app.css?v=20260809" />
 </head>
 <body>
   <div id="app">
@@ -19,7 +19,7 @@
       <p>Загрузка…</p>
     </div>
 
-    <!-- Онбординг: приветствие → класс → предметы → цель -->
+    <!-- Онбординг: имя → класс → математика → учебник → текущая тема -->
     <div id="onboarding-root" class="onboarding-root" aria-hidden="true" hidden>
       <div class="onb-atmo" aria-hidden="true"></div>
       <div class="onb-ember-layer" aria-hidden="true"></div>
@@ -55,8 +55,22 @@
           <button type="button" class="onb-btn-main" id="onb-btn-start">Начать</button>
         </div>
 
+        <div class="onb-step" data-onb-step="identity" hidden>
+          <p class="onb-progress">Шаг 1 из 5</p>
+          <h2 class="onb-title">Как к тебе обращаться?</h2>
+          <p class="onb-sub">Имя или ник — только для твоего профиля и подсказок.</p>
+          <label class="onb-field">
+            <span>Имя или ник</span>
+            <input id="onb-name" type="text" maxlength="32" autocomplete="nickname" placeholder="Например, Саша" />
+          </label>
+          <div class="onb-row-actions">
+            <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
+            <button type="button" class="onb-btn-main" id="onb-name-next" disabled>Далее</button>
+          </div>
+        </div>
+
         <div class="onb-step" data-onb-step="grade" hidden>
-          <p class="onb-progress">Шаг 1 из 3</p>
+          <p class="onb-progress">Шаг 2 из 5</p>
           <h2 class="onb-title">В каком ты классе?</h2>
           <p class="onb-sub">Выбери параллель — под неё подстроим предметы и прогресс.</p>
           <div class="onb-grade-grid" id="onb-grade-grid"></div>
@@ -67,9 +81,9 @@
         </div>
 
         <div class="onb-step" data-onb-step="subjects" hidden>
-          <p class="onb-progress">Шаг 2 из 3</p>
-          <h2 class="onb-title">Какие предметы изучаем?</h2>
-          <p class="onb-sub">Отметь минимум один — их увидишь на главной и здесь.</p>
+          <p class="onb-progress">Шаг 3 из 5</p>
+          <h2 class="onb-title">Начнём с математики</h2>
+          <p class="onb-sub">Сейчас Shanks сфокусирован на математике. Она уже выбрана.</p>
           <div class="onb-chip-wrap" id="onb-subject-list"></div>
           <div class="onb-row-actions">
             <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
@@ -77,14 +91,25 @@
           </div>
         </div>
 
-        <div class="onb-step" data-onb-step="goal" hidden>
-          <p class="onb-progress">Шаг 3 из 3</p>
-          <h2 class="onb-title">Какая цель?</h2>
-          <p class="onb-sub">Подстроим подсказки и мотивацию — можно сменить позже в профиле. Цель можно пропустить.</p>
-          <div class="onb-goal-grid" id="onb-goal-list"></div>
+        <div class="onb-step" data-onb-step="textbook" hidden>
+          <p class="onb-progress">Шаг 4 из 5</p>
+          <h2 class="onb-title">По какому учебнику учишься?</h2>
+          <p class="onb-sub">Это настроит порядок тем. Прогресс сохранится, если сменишь учебник.</p>
+          <div class="onb-goal-grid" id="onb-textbook-list"></div>
           <div class="onb-row-actions">
             <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
-            <button type="button" class="onb-btn-ghost" id="onb-skip-goal">Пропустить цель</button>
+            <button type="button" class="onb-btn-main" id="onb-textbook-next" disabled>Далее</button>
+          </div>
+        </div>
+
+        <div class="onb-step" data-onb-step="topic" hidden>
+          <p class="onb-progress">Шаг 5 из 5</p>
+          <h2 class="onb-title">Что проходишь сейчас?</h2>
+          <p class="onb-sub">Выбери тему из программы. Если не уверен — начнём с первой.</p>
+          <div class="onb-topic-list" id="onb-topic-list"></div>
+          <button type="button" class="onb-btn-ghost onb-unknown" id="onb-topic-unknown">Не знаю текущую тему</button>
+          <div class="onb-row-actions">
+            <button type="button" class="onb-btn-ghost" data-onb-back>Назад</button>
             <button type="button" class="onb-btn-main" id="onb-finish">В приложение</button>
           </div>
         </div>
@@ -96,6 +121,15 @@
       <div class="view view-main is-active" data-tab="home">
         <div class="phone">
           <div class="screen-body">
+            <section class="home-continue" id="home-continue-card">
+              <span class="kicker">ПРОДОЛЖИТЬ</span>
+              <h2 id="home-continue-title">Твоя математика</h2>
+              <p id="home-continue-meta">Продолжим с последнего шага</p>
+              <button type="button" class="home-continue-btn" id="btn-home-continue">
+                <span id="home-continue-cta">Продолжить</span>
+                <i data-lucide="arrow-right"></i>
+              </button>
+            </section>
             <div class="card-progress-wrap">
               <div class="cp-header">
                 <span class="kicker">★ МОЙ ПРОГРЕСС</span>
@@ -142,10 +176,13 @@
             </div>
             <div class="content-panel content-panel--subjects">
               <div id="fav-list"></div>
-              <button type="button" class="btn-add-subject" id="btn-add-subject">
-                <i data-lucide="plus-circle"></i>
-                <span>Добавить предмет</span>
-              </button>
+              <section class="subject-vote-card">
+                <span class="kicker">ЧТО ДАЛЬШЕ?</span>
+                <h2>Какой предмет добавить следующим?</h2>
+                <p>Математика уже здесь. Твой голос поможет выбрать следующий предмет.</p>
+                <div class="subject-vote-options" id="subject-vote-options"></div>
+                <p class="subject-vote-status" id="subject-vote-status"></p>
+              </section>
             </div>
           </div>
         </div>
@@ -190,8 +227,8 @@
             </div>
             <div class="profile-card">
               <div class="avatar"><i data-lucide="user"></i></div>
-              <h2>Ученик Shanks</h2>
-              <p>Здесь скоро появятся подписка и статистика — интерфейс собран по макетам V8 из Pencil.</p>
+              <h2 id="profile-name">Ученик Shanks</h2>
+              <p>Твой маршрут по математике и сохранённый прогресс.</p>
               <button type="button" class="btn-my-class" id="btn-profile-my-class">
                 <span class="btn-my-class-text">
                   <span class="btn-my-class-label">Мой класс</span>
@@ -199,13 +236,34 @@
                 </span>
                 <i data-lucide="chevron-right" class="btn-my-class-chev"></i>
               </button>
-              <button type="button" class="btn-my-class" id="btn-profile-goal">
+              <button type="button" class="btn-my-class" id="btn-profile-textbook">
                 <span class="btn-my-class-text">
-                  <span class="btn-my-class-label">Моя цель</span>
-                  <span class="btn-my-class-value" id="profile-goal-value">Не выбрана</span>
+                  <span class="btn-my-class-label">Мой учебник</span>
+                  <span class="btn-my-class-value" id="profile-textbook-value">Универсальная программа</span>
                 </span>
                 <i data-lucide="chevron-right" class="btn-my-class-chev"></i>
               </button>
+              <section class="auth-panel" id="auth-panel">
+                <div>
+                  <strong id="auth-title">Локальный профиль</strong>
+                  <span id="auth-status">Прогресс хранится на этом устройстве</span>
+                </div>
+                <form class="auth-form" id="auth-form">
+                  <label>
+                    <span>Email</span>
+                    <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" />
+                  </label>
+                  <label>
+                    <span>Пароль</span>
+                    <input id="auth-password" type="password" minlength="8" autocomplete="current-password" placeholder="Минимум 8 символов" />
+                  </label>
+                  <div class="auth-actions">
+                    <button type="submit" class="btn-profile-action" id="btn-auth-action">Войти</button>
+                    <button type="button" class="btn-profile-action btn-profile-action--ghost" id="btn-auth-signup">Создать аккаунт</button>
+                  </div>
+                </form>
+                <button type="button" class="btn-profile-action" id="btn-auth-signout" hidden>Выйти</button>
+              </section>
               <button type="button" class="btn-profile-action" id="btn-profile-settings">Настройки</button>
             </div>
           </div>
@@ -259,15 +317,15 @@
       </div>
     </div>
 
-    <!-- Смена цели (профиль) -->
-    <div id="sheet-goal" class="sheet-overlay" hidden aria-hidden="true">
-      <div class="sheet-backdrop" data-sheet-close="goal"></div>
-      <div class="sheet-panel sheet-panel--compact" role="dialog" aria-labelledby="sheet-goal-title">
+    <!-- Смена учебника (профиль) -->
+    <div id="sheet-textbook" class="sheet-overlay" hidden aria-hidden="true">
+      <div class="sheet-backdrop" data-sheet-close="textbook"></div>
+      <div class="sheet-panel sheet-panel--compact" role="dialog" aria-labelledby="sheet-textbook-title">
         <div class="sheet-grab"></div>
-        <h2 class="sheet-title" id="sheet-goal-title">Моя цель</h2>
-        <p class="sheet-lead">Цель меняет подсказки на главной и в темах</p>
-        <div class="onb-goal-grid sheet-goal-grid" id="sheet-goal-buttons"></div>
-        <button type="button" class="btn-sheet-done btn-sheet-done--ghost" data-sheet-close="goal">Закрыть</button>
+        <h2 class="sheet-title" id="sheet-textbook-title">Мой учебник</h2>
+        <p class="sheet-lead">Смена учебника не сбрасывает прогресс по темам</p>
+        <div class="onb-goal-grid sheet-goal-grid" id="sheet-textbook-buttons"></div>
+        <button type="button" class="btn-sheet-done btn-sheet-done--ghost" data-sheet-close="textbook">Закрыть</button>
       </div>
     </div>
 
@@ -326,6 +384,10 @@
             </div>
             <p class="tp-meta" id="tp-meta">Математика · 7 класс</p>
             <div class="hero-track tp-pb"><div class="hero-fill" id="tp-bar" style="width:63%"></div></div>
+            <div class="ai-content-note" id="topic-ai-note" hidden>
+              <span>AI · beta</span>
+              <button type="button" data-report-generated>Сообщить о неточности</button>
+            </div>
           </div>
           <div class="mode-row" id="topic-mode-row" role="tablist" aria-label="Режим темы">
             <button type="button" class="mode-tile mode-tile--on" data-mode="theory" role="tab" id="tab-mode-theory" aria-selected="true">
@@ -380,6 +442,10 @@
               </div>
             </div>
             <p class="act-pct-caption-v8" id="act-pct-label">0% · 0/0</p>
+            <div class="ai-content-note ai-content-note--dark" id="activity-ai-note" hidden>
+              <span>AI · beta</span>
+              <button type="button" data-report-generated>Сообщить о неточности</button>
+            </div>
           </div>
 
           <div class="act-tabs-strip" id="act-main-tabs" role="tablist" aria-label="Режим">
@@ -413,11 +479,15 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="js/data.js?v=20260511"></script>
-  <script src="js/math-learning-content.js?v=20260511"></script>
-  <script src="js/math-curriculum-embed.js?v=20260511"></script>
-  <script src="js/progress.js?v=20260511"></script>
-  <script src="js/math-learning-kpi.js?v=20260511"></script>
-  <script src="js/app.js?v=20260511"></script>
+  <script src="js/config.js?v=20260809"></script>
+  <script src="js/cloud-sync.js?v=20260809"></script>
+  <script src="js/auth.js?v=20260809"></script>
+  <script src="js/data.js?v=20260809"></script>
+  <script src="js/math-content-data-embed.js?v=20260809"></script>
+  <script src="js/math-learning-content.js?v=20260809"></script>
+  <script src="js/math-curriculum-embed.js?v=20260809"></script>
+  <script src="js/progress.js?v=20260809"></script>
+  <script src="js/math-learning-kpi.js?v=20260809"></script>
+  <script src="js/app.js?v=20260809"></script>
 </body>
 </html>

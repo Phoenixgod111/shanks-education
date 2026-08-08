@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shanks.local/schema/catalog.schema.json",
+  "title": "Shanks textbook line catalog",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "version",
+    "status",
+    "lines",
+    "universal"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "beta",
+        "stable",
+        "deprecated"
+      ]
+    },
+    "note": {
+      "type": "string"
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 21,
+      "maxItems": 21,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "subject",
+          "grade",
+          "title",
+          "authors",
+          "publisher",
+          "status",
+          "metadataScope",
+          "omittedMetadata",
+          "rightsRef"
+        ]
+      }
+    },
+    "universal": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "subject",
+        "grades",
+        "title",
+        "status",
+        "metadataScope",
+        "rightsRef"
+      ]
+    }
+  }
+}

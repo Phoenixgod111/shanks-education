@@ -14,9 +14,25 @@ python -m http.server 8000
 
 ```bash
 npm run check
+npm run test:e2e
 ```
 
-Команда валидирует curriculum, манифест `learning-slice-ids.json` по **всем** `byGrade`, learning-контент, генерирует embed, `lint`, тесты `test:progress`, `test:kpi`, инварианты пилота `qa:pilot`, smoke-check.
+Команда детерминированно пересобирает data/content и embed, валидирует curriculum 5–11,
+21 учебниковую линейку и universal-траекторию, canonical mapping, AI-beta content packets,
+rights registry, манифест `learning-slice-ids.json` и богатый пилотный контент
+`g8-u01..g8-u06`, затем запускает `lint`, тесты, инварианты пилота и smoke-check.
+
+Основные команды конвейера:
+
+```bash
+npm run generate:data
+npm run validate:data
+```
+
+Источник истины — `curriculum/math/*.json`; canonical registry, каталог, trajectories,
+компактные fallback-пакеты и `js/math-content-data-embed.js` создаются без внешнего API.
+Пакеты имеют статус `beta` и provenance `ai-beta-unreviewed`; для `g8-u01..g8-u06`
+приоритет остаётся у существующего `js/math-learning-content.js`.
 
 ## Pre-demo (перед показом)
 
@@ -47,7 +63,7 @@ UX / замечания:
 Цель: убедиться, что путь **8 класс → Математика → «Квадратные уравнения» → g8-u01 → теория → практика 3/4 → тест → 100% → перезагрузка сохраняет прогресс**.
 
 1. Сбрось прогресс пилота (см. ниже) или полный ключ `shanks_prefs_v2`, перезагрузи страницу.
-2. Онбординг: выбери **8 класс**, добавь **Математику** в избранное, заверши онбординг.
+2. Онбординг: укажи имя/ник → **8 класс** → Математика → учебник → текущая тема.
 3. **Предметы** → Математика → модуль «Квадратные уравнения» → тема **g8-u01** (карточка с бейджем «Интерактив»).
 4. **Теория**: прочитай блоки → «Отметить теорию прочитанной».
 5. **Практика**: ответь верно минимум на **3 из 4** карточек; тест остаётся закрыт до зачёта.
@@ -71,7 +87,16 @@ UX / замечания:
 3. Локально перед пушем: `npm run check`.
 4. Если HTML уже новый, а интерфейс «старый» — проверь жёсткое обновление (Ctrl+F5) и кэш CDN/браузера.
 
-В этом репозитории workflow `.github/workflows/ci.yml` только запускает **`npm run check`** на push/PR и **не публикует** Pages автоматически — публикация зависит от настроек GitHub (ветка `gh-pages`, или `/docs`, или *GitHub Actions* deploy, если включите отдельно).
+Workflow `.github/workflows/ci.yml` запускает генерацию, валидацию, unit/smoke и
+браузерный Playwright-сценарий. `.github/workflows/pages.yml` публикует `master`
+в GitHub Pages только после успешного `npm run check`; в настройках Pages источником
+должен быть выбран **GitHub Actions**.
+
+## Supabase
+
+Без конфигурации приложение безопасно работает локально. Для аккаунтов, синхронизации
+прогресса и голосов выполните инструкцию [`docs/supabase-setup.md`](docs/supabase-setup.md).
+В браузере разрешён только publishable/anon key; `service_role` запрещён.
 
 ## QA: сброс прогресса
 
@@ -92,8 +117,16 @@ Shanks/
 │   ├── progress.js             # правила % по теме
 │   ├── math-learning-kpi.js    # KPI allowlist (чистые функции)
 │   └── math-learning-content.js
-├── curriculum/math/
-└── scripts/                    # validate, generate:math-embed, test-*, qa:pilot, smoke
+├── curriculum/
+│   ├── math/                   # программы 5–11
+│   ├── canonical/              # canonical topic registry
+│   ├── catalog/                # 21 линий + universal
+│   ├── schema/
+│   └── trajectories/
+├── content/
+│   ├── math/                   # AI-beta packets 5–11
+│   └── rights/
+└── scripts/                    # generators, validators, tests and smoke checks
 ```
 
 ## Технологии

@@ -13,11 +13,12 @@
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
   const PREFS_KEY = D.storageKey || "shanks_prefs_v2";
+  const PREFS_SCHEMA_VERSION = Number(D.prefsSchemaVersion) || 3;
 
   const SHEET_BY_KIND = {
     "add-subjects": "sheet-add-subjects",
     grade: "sheet-grade",
-    goal: "sheet-goal",
+    textbook: "sheet-textbook",
     "topic-search": "sheet-topic-search",
   };
 
@@ -51,14 +52,24 @@
     lessonStudentReplies: {},
   };
 
-  let prefs = { favoritesByGrade: {}, initialized: false, topicProgress: {} };
+  let prefs = { favoritesByGrade: {}, initialized: false, topicProgress: {}, schemaVersion: PREFS_SCHEMA_VERSION };
   let toastTimer = null;
   let mainBound = false;
+  let authHookBound = false;
+  let cloudSyncTimer = null;
+  let currentAuthUser = null;
+  let cloudBootstrapUserId = null;
+  let cloudBootstrapPromise = null;
+  let cloudReadyUserId = null;
+  let cloudPrefsSyncQueue = Promise.resolve();
+  let cloudLessonSyncQueue = Promise.resolve();
 
   const onbState = {
+    displayName: "",
     grade: null,
-    subjects: [],
-    goalId: null,
+    subjects: ["math"],
+    textbookId: null,
+    topicId: null,
   };
 
   function iconsRefresh() {
@@ -82,10 +93,38 @@
     return { favoritesByGrade: {}, initialized: false, topicProgress: {} };
   }
 
+  function migratePrefs(input) {
+    const next = input && typeof input === "object" ? { ...input } : {};
+    const from = Number(next.schemaVersion) || 1;
+    if (from < 3) {
+      if (!next.displayName && typeof next.name === "string") next.displayName = next.name;
+      if (!next.textbookId) next.textbookId = "universal";
+      if (!next.lessonPosition || typeof next.lessonPosition !== "object") next.lessonPosition = null;
+      /* topicProgress deliberately remains canonical and is never nested under a textbook. */
+      delete next.studyGoal;
+    }
+    next.schemaVersion = PREFS_SCHEMA_VERSION;
+    next.prefsSchemaVersion = PREFS_SCHEMA_VERSION;
+    return next;
+  }
+
   function savePrefs() {
     try {
       localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
     } catch (e) {}
+    clearTimeout(cloudSyncTimer);
+    cloudSyncTimer = setTimeout(() => {
+      const cloud = window.SHANKS_CLOUD;
+      if (
+        !currentAuthUser ||
+        cloudReadyUserId !== String(currentAuthUser.id || "") ||
+        typeof cloud?.syncPrefsProgress !== "function"
+      ) return;
+      const snapshot = JSON.parse(JSON.stringify(prefs));
+      cloudPrefsSyncQueue = cloudPrefsSyncQueue
+        .catch(() => {})
+        .then(() => cloud.syncPrefsProgress({ prefs: snapshot }));
+    }, 700);
   }
 
   function ensureGradeBuckets() {
@@ -105,11 +144,14 @@
   }
 
   function initPrefs() {
-    prefs = loadPrefs();
+    prefs = migratePrefs(loadPrefs());
     if (!prefs || typeof prefs !== "object") prefs = {};
 
     const legacy =
-      prefs.initialized === true && prefs.onboardingCompleted !== true;
+      prefs.initialized === true &&
+      prefs.onboardingCompleted !== true &&
+      prefs.grade != null &&
+      prefs.grade !== "";
 
     if (legacy) {
       prefs.onboardingCompleted = true;
@@ -129,12 +171,15 @@
       prefs.initialized = true;
       prefs.onboardingCompleted = false;
       prefs.grade = null;
-      prefs.studyGoal = null;
+      prefs.displayName = "";
+      prefs.textbookId = null;
+      prefs.lessonPosition = null;
       prefs.topicProgress = {};
       savePrefs();
     } else {
       ensureGradeBuckets();
       ensureTopicProgressStore();
+      savePrefs();
     }
   }
 
@@ -149,6 +194,10 @@
     const prev = state.grade;
     state.grade = n;
     prefs.grade = n;
+    if (!getTextbooks(n).some((book) => book.id === prefs.textbookId)) {
+      prefs.textbookId = getTextbooks(n).find((book) => book.universal)?.id || getTextbooks(n)[0]?.id || null;
+    }
+    prefs.trajectoryVersion = trajectoryFor(prefs.textbookId)?.version || "1";
     savePrefs();
     renderHome();
     renderSubjects();
@@ -162,9 +211,174 @@
   function renderProfile() {
     const el = $("#profile-grade-value");
     if (el) el.textContent = `${state.grade} класс`;
-    const goal = (D.onboardingGoals || []).find((g) => g.id === prefs.studyGoal);
-    const goalEl = $("#profile-goal-value");
-    if (goalEl) goalEl.textContent = goal?.title || "Не выбрана";
+    const nameEl = $("#profile-name");
+    if (nameEl) nameEl.textContent = prefs.displayName || "Ученик Shanks";
+    const textbook = getTextbooks(state.grade).find((book) => book.id === prefs.textbookId);
+    const textbookEl = $("#profile-textbook-value");
+    if (textbookEl) textbookEl.textContent = textbook?.title || "Универсальная программа";
+    renderAuthPanel();
+  }
+
+  function renderAuthPanel() {
+    const panel = $("#auth-panel");
+    if (!panel) return;
+    const auth = window.SHANKS_AUTH;
+    const cloud = window.SHANKS_CLOUD;
+    const authAvailable = !!auth && (typeof cloud?.isConfigured !== "function" || cloud.isConfigured());
+    const title = $("#auth-title");
+    const status = $("#auth-status");
+    const form = $("#auth-form");
+    const signout = $("#btn-auth-signout");
+    panel.classList.toggle("auth-panel--available", authAvailable);
+    if (currentAuthUser) {
+      if (title) title.textContent = currentAuthUser.email || prefs.displayName || "Аккаунт подключён";
+      if (status) status.textContent = cloud ? "Облачная синхронизация доступна" : "Вход выполнен";
+      form?.toggleAttribute("hidden", true);
+      signout?.toggleAttribute("hidden", false);
+    } else {
+      if (title) title.textContent = authAvailable ? "Сохрани прогресс в облаке" : "Локальный профиль";
+      if (status) status.textContent = authAvailable
+        ? "Войди, чтобы продолжать на другом устройстве"
+        : "Прогресс хранится на этом устройстве · облако ещё не настроено";
+      form?.toggleAttribute("hidden", !authAvailable);
+      signout?.toggleAttribute("hidden", true);
+    }
+  }
+
+  function authCredentials() {
+    return {
+      email: String($("#auth-email")?.value || "").trim(),
+      password: String($("#auth-password")?.value || ""),
+    };
+  }
+
+  async function syncPendingCloudActions() {
+    const cloud = window.SHANKS_CLOUD;
+    if (!currentAuthUser || !cloud) return;
+    if (prefs.subjectVote && typeof cloud.voteForSubject === "function") {
+      await cloud.voteForSubject(prefs.subjectVote).catch(() => null);
+    }
+    const reports = Array.isArray(prefs.generatedContentReports) ? prefs.generatedContentReports : [];
+    if (!reports.length || typeof cloud.trackEvent !== "function") return;
+    const results = await Promise.all(reports.map((payload) => cloud.trackEvent("content.reported", payload).catch(() => null)));
+    if (results.every((result) => result?.ok)) {
+      prefs.generatedContentReports = [];
+      savePrefs();
+    }
+  }
+
+  async function finishCloudSignIn(user) {
+    currentAuthUser = user || null;
+    if (!currentAuthUser) return;
+    const userId = String(currentAuthUser.id || "");
+    if (cloudBootstrapUserId === userId) {
+      if (cloudBootstrapPromise) await cloudBootstrapPromise;
+      return;
+    }
+    cloudBootstrapUserId = userId;
+    cloudReadyUserId = null;
+    cloudBootstrapPromise = (async () => {
+      const cloud = window.SHANKS_CLOUD;
+      if (typeof cloud?.migrateLocalStorage === "function") {
+        const migrated = await cloud.migrateLocalStorage();
+        if (!migrated?.ok) throw new Error(migrated?.reason || "cloud_migration_failed");
+        const canPull =
+          migrated?.ok &&
+          !migrated.migrated &&
+          ["already_migrated", "no_local_data", "no_meaningful_local_data", "remote_data_exists"].includes(
+            migrated.reason,
+          );
+        if (canPull && typeof cloud.syncPrefsProgress === "function") {
+          const pulled = await cloud.syncPrefsProgress({ strategy: "remote-wins", writeLocal: true });
+          if (!pulled?.ok || !pulled.prefs) throw new Error(pulled?.reason || "cloud_pull_failed");
+          prefs = migratePrefs(pulled.prefs);
+          initPrefs();
+          applyPrefsGradeToState();
+          renderHome();
+          renderSubjects();
+          renderProfile();
+          iconsRefresh();
+        }
+      }
+      await syncPendingCloudActions();
+      cloudReadyUserId = userId;
+      renderAuthPanel();
+    })();
+    try {
+      await cloudBootstrapPromise;
+    } catch (error) {
+      cloudBootstrapUserId = null;
+      cloudReadyUserId = null;
+      throw error;
+    } finally {
+      cloudBootstrapPromise = null;
+    }
+  }
+
+  async function runAuthAction(kind) {
+    const auth = window.SHANKS_AUTH;
+    const cloud = window.SHANKS_CLOUD;
+    if (!auth || (typeof cloud?.isConfigured === "function" && !cloud.isConfigured())) {
+      return toast("Облачный вход ещё не настроен.");
+    }
+    try {
+      if (kind === "signout") {
+        const result = await auth.signOut();
+        if (!result?.ok) throw result?.error || new Error(result?.reason || "signout_failed");
+        currentAuthUser = null;
+        cloudBootstrapUserId = null;
+        cloudBootstrapPromise = null;
+        cloudReadyUserId = null;
+        renderAuthPanel();
+        toast("Вы вышли из аккаунта");
+        return;
+      }
+      const { email, password } = authCredentials();
+      if (!email || password.length < 8) {
+        toast("Укажи email и пароль минимум из 8 символов");
+        return;
+      }
+      const result = kind === "signup" ? await auth.signUp(email, password) : await auth.signIn(email, password);
+      if (!result?.ok) throw result?.error || new Error(result?.reason || "auth_failed");
+      if (result.confirmationRequired) {
+        toast("Проверь почту и подтверди регистрацию");
+        return;
+      }
+      await finishCloudSignIn(result.user);
+      toast(kind === "signup" ? "Аккаунт создан" : "Прогресс синхронизирован");
+      renderAuthPanel();
+    } catch (error) {
+      toast("Не удалось выполнить вход. Проверь данные.");
+    }
+  }
+
+  async function bindAuthHook() {
+    if (authHookBound || !window.SHANKS_AUTH) {
+      if (cloudBootstrapPromise) await cloudBootstrapPromise;
+      return;
+    }
+    authHookBound = true;
+    const auth = window.SHANKS_AUTH;
+    const refresh = (_event, session) => {
+      currentAuthUser = session?.user || null;
+      renderAuthPanel();
+      if (currentAuthUser) finishCloudSignIn(currentAuthUser).catch(() => {});
+      else {
+        cloudBootstrapUserId = null;
+        cloudBootstrapPromise = null;
+        cloudReadyUserId = null;
+      }
+    };
+    try {
+      if (typeof auth.onAuthStateChange === "function") auth.onAuthStateChange(refresh);
+      else if (typeof auth.subscribe === "function") auth.subscribe(refresh);
+      else if (typeof auth.onChange === "function") auth.onChange(refresh);
+    } catch (e) {}
+    if (typeof auth.getUser !== "function") return;
+    const result = await auth.getUser();
+    currentAuthUser = result?.ok ? result.user : null;
+    renderAuthPanel();
+    if (currentAuthUser) await finishCloudSignIn(currentAuthUser);
   }
 
   function showOnboardingUI() {
@@ -211,14 +425,13 @@
     const wrap = $("#onb-subject-list");
     if (!wrap || onbState.grade == null) return;
     wrap.innerHTML = "";
-    const catalog = getCatalog(onbState.grade);
-    const sel = new Set(onbState.subjects);
+    const catalog = getCatalog(onbState.grade).filter((r) => routeSubjectKey(r.id) === "math");
+    onbState.subjects = ["math"];
     catalog.forEach((r) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className =
-        "onb-subject-chip" + (sel.has(r.id) ? " onb-subject-chip--on" : "");
-      btn.dataset.onToggleSubject = r.id;
+        "onb-subject-chip onb-subject-chip--on";
       btn.innerHTML = `
         <span class="onb-ico"><i data-lucide="${r.icon}"></i></span>
         <span>${r.name}</span>`;
@@ -226,39 +439,158 @@
     });
     iconsRefresh();
     const next = $("#onb-subjects-next");
-    if (next) next.disabled = onbState.subjects.length < 1;
+    if (next) next.disabled = false;
   }
 
-  function onbBuildGoalsStep() {
-    const wrap = $("#onb-goal-list");
+  function normalizeTextbooks(raw, grade) {
+    let list = [];
+    if (Array.isArray(raw)) list = raw;
+    else if (Array.isArray(raw?.lines)) list = raw.lines.filter((book) => Number(book?.grade) === Number(grade));
+    else if (Array.isArray(raw?.byGrade?.[grade])) list = raw.byGrade[grade];
+    else if (Array.isArray(raw?.byGrade?.[String(grade)])) list = raw.byGrade[String(grade)];
+    else if (Array.isArray(raw?.[grade])) list = raw[grade];
+    else if (Array.isArray(raw?.[String(grade)])) list = raw[String(grade)];
+    return list
+      .map((book, index) => ({
+        id: String(book?.id || book?.slug || `book-${grade}-${index}`),
+        title: String(book?.title || book?.name || `Учебник ${index + 1}`),
+        authors: Array.isArray(book?.authors)
+          ? book.authors.join(", ")
+          : String(book?.authors || book?.author || ""),
+        beta: !!book?.beta || book?.status === "beta",
+        universal: !!book?.universal,
+      }))
+      .filter((book) => book.id && book.title);
+  }
+
+  function getTextbooks(grade) {
+    const embeddedCatalog = window.SHANKS_MATH_CONTENT_DATA?.catalog;
+    const external = normalizeTextbooks(window.SHANKS_TEXTBOOKS || embeddedCatalog, grade);
+    if (external.length) {
+      return [
+        ...external,
+        { id: "universal", title: "Универсальная программа", authors: "", universal: true, beta: false },
+      ];
+    }
+    return normalizeTextbooks(D.textbookFallbackByGrade, grade);
+  }
+
+  function textbookCardMarkup(book, grade, index) {
+    const symbols = ["x²", "π", "Σ", "△"];
+    const motif = symbols[index % symbols.length];
+    const status = book.universal
+      ? "Подходит для любой программы"
+      : book.authors || (book.beta ? "AI-бета · соответствие уточняется" : "Маршрут учебника");
+    return `
+      <span class="textbook-cover textbook-cover--${(index % 4) + 1}" aria-hidden="true">
+        <span class="textbook-cover-grade">${grade}</span>
+        <span class="textbook-cover-symbol">${motif}</span>
+        <span class="textbook-cover-brand">SHANKS MAP</span>
+      </span>
+      <span class="textbook-copy">
+        <strong>${book.title}</strong>
+        <span>${status}</span>
+      </span>`;
+  }
+
+  function onbBuildTextbooksStep() {
+    const wrap = $("#onb-textbook-list");
     if (!wrap) return;
     wrap.innerHTML = "";
-    const goals = D.onboardingGoals || [
-      { id: "grades", title: "Подтянуть оценки", sub: "Регулярно" },
-      { id: "exam", title: "К экзамену", sub: "Структура" },
-    ];
-    goals.forEach((g) => {
+    getTextbooks(onbState.grade).forEach((book, index) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className =
-        "onb-goal-card" + (onbState.goalId === g.id ? " onb-goal-card--on" : "");
-      btn.dataset.onChooseGoal = g.id;
-      btn.innerHTML = `<strong>${g.title}</strong><span>${g.sub}</span>`;
+        "onb-goal-card textbook-card" + (onbState.textbookId === book.id ? " onb-goal-card--on" : "");
+      btn.dataset.onChooseTextbook = book.id;
+      btn.innerHTML = textbookCardMarkup(book, onbState.grade, index);
+      wrap.appendChild(btn);
+    });
+    const next = $("#onb-textbook-next");
+    if (next) next.disabled = !onbState.textbookId;
+  }
+
+  function flattenDetailTopics(detail) {
+    const topics = [];
+    (detail?.topics || []).forEach((block) => {
+      if (Array.isArray(block.items)) topics.push(...block.items);
+      else if (isCurriculumTopic(block)) topics.push(block);
+    });
+    return topics;
+  }
+
+  function trajectoryFor(textbookId) {
+    const trajectories = window.SHANKS_MATH_CONTENT_DATA?.trajectories || {};
+    const id = textbookId === "universal" || !textbookId ? "math-universal-5-11" : textbookId;
+    return trajectories[id] || null;
+  }
+
+  function applyTextbookTrajectory(detail, grade, textbookId) {
+    const trajectory = trajectoryFor(textbookId);
+    if (!trajectory || !Array.isArray(trajectory.mapping)) return detail;
+    const canonical = flattenDetailTopics(detail);
+    const byId = new Map(canonical.map((topic) => [String(topic.id), topic]));
+    const ordered = trajectory.mapping
+      .slice()
+      .sort((a, b) => Number(a.sourcePosition) - Number(b.sourcePosition))
+      .map((entry) => byId.get(String(entry.canonicalTopicId)))
+      .filter(Boolean);
+    if (!ordered.length) return detail;
+    const selected = getTextbooks(grade).find((book) => book.id === textbookId);
+    return {
+      ...detail,
+      trajectoryId: trajectory.id,
+      trajectoryVersion: trajectory.version,
+      trajectoryStatus: trajectory.status,
+      topics: [
+        {
+          title: selected?.universal ? "Общая программа" : `Маршрут · ${selected?.title || "учебник"}`,
+          items: ordered,
+        },
+      ],
+    };
+  }
+
+  function flattenMathTopics(grade, textbookId) {
+    const raw = D.subjectDetailByGrade?.[Number(grade)]?.math || getSubjectDetail("math", grade);
+    const selectedId = textbookId || (Number(grade) === Number(onbState.grade) ? onbState.textbookId : prefs.textbookId);
+    return flattenDetailTopics(applyTextbookTrajectory(raw, grade, selectedId));
+  }
+
+  function onbBuildTopicStep() {
+    const wrap = $("#onb-topic-list");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    flattenMathTopics(onbState.grade).slice(0, 12).forEach((topic) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "onb-topic-btn" + (onbState.topicId === topic.id ? " onb-topic-btn--on" : "");
+      btn.dataset.onChooseTopic = topic.id;
+      btn.textContent = topic.title;
       wrap.appendChild(btn);
     });
   }
 
   function onbResetDraft() {
+    onbState.displayName = "";
     onbState.grade = null;
-    onbState.subjects = [];
-    onbState.goalId = null;
+    onbState.subjects = ["math"];
+    onbState.textbookId = null;
+    onbState.topicId = null;
   }
 
   function finishOnboarding() {
-    if (onbState.grade == null || onbState.subjects.length < 1) return;
+    if (!onbState.displayName.trim() || onbState.grade == null || !onbState.textbookId) return;
+    prefs.displayName = onbState.displayName.trim();
     prefs.grade = onbState.grade;
-    setFavoritesForGrade(onbState.grade, onbState.subjects.slice());
-    prefs.studyGoal = onbState.goalId || null;
+    setFavoritesForGrade(onbState.grade, ["math"]);
+    prefs.textbookId = onbState.textbookId;
+    prefs.trajectoryVersion = trajectoryFor(onbState.textbookId)?.version || "1";
+    const firstTopic = flattenMathTopics(onbState.grade)[0];
+    const topicId = onbState.topicId || firstTopic?.id || null;
+    prefs.lessonPosition = topicId
+      ? { subjectKey: "math", grade: onbState.grade, topicId, mode: "theory", stepId: null, updatedAt: new Date().toISOString() }
+      : null;
     prefs.onboardingCompleted = true;
     savePrefs();
     onbResetDraft();
@@ -275,6 +607,7 @@
     renderTopic(null, getSubjectDetail(state.subjectKey, state.grade));
     renderNotes();
     renderProfile();
+    bindAuthHook();
     if (!mainBound) {
       bind();
       mainBound = true;
@@ -285,32 +618,46 @@
 
   function bindOnboarding() {
     $("#onb-btn-start")?.addEventListener("click", () => {
+      onbGoStep("identity");
+      setTimeout(() => $("#onb-name")?.focus(), 50);
+    });
+
+    $("#onb-name")?.addEventListener("input", (e) => {
+      onbState.displayName = e.target.value.slice(0, 32);
+      const next = $("#onb-name-next");
+      if (next) next.disabled = !onbState.displayName.trim();
+    });
+
+    $("#onb-name-next")?.addEventListener("click", () => {
+      if (!onbState.displayName.trim()) return;
       onbGoStep("grade");
       onbBuildGradeStep();
     });
 
     $("#onb-grade-next")?.addEventListener("click", () => {
       if (onbState.grade == null) return;
-      onbState.subjects = [];
+      onbState.subjects = ["math"];
       onbGoStep("subjects");
       onbBuildSubjectsStep();
     });
 
     $("#onb-subjects-next")?.addEventListener("click", () => {
-      if (onbState.subjects.length < 1) {
-        toast((D.copy && D.copy.noSubjectsOnboarding) || "Выбери предмет");
-        return;
-      }
-      onbGoStep("goal");
-      onbBuildGoalsStep();
+      onbGoStep("textbook");
+      onbBuildTextbooksStep();
+    });
+
+    $("#onb-textbook-next")?.addEventListener("click", () => {
+      if (!onbState.textbookId) return;
+      onbGoStep("topic");
+      onbBuildTopicStep();
     });
 
     $("#onb-finish")?.addEventListener("click", () => {
       finishOnboarding();
     });
 
-    $("#onb-skip-goal")?.addEventListener("click", () => {
-      onbState.goalId = null;
+    $("#onb-topic-unknown")?.addEventListener("click", () => {
+      onbState.topicId = null;
       finishOnboarding();
     });
 
@@ -321,31 +668,33 @@
         onbBuildGradeStep();
         return;
       }
-      const tb = e.target.closest("[data-on-toggle-subject]");
-      if (tb) {
-        const id = tb.dataset.onToggleSubject;
-        const i = onbState.subjects.indexOf(id);
-        if (i >= 0) onbState.subjects.splice(i, 1);
-        else onbState.subjects.push(id);
-        onbBuildSubjectsStep();
+      const textbookBtn = e.target.closest("[data-on-choose-textbook]");
+      if (textbookBtn) {
+        onbState.textbookId = textbookBtn.dataset.onChooseTextbook;
+        onbBuildTextbooksStep();
         return;
       }
-      const goalBtn = e.target.closest("[data-on-choose-goal]");
-      if (goalBtn) {
-        onbState.goalId = goalBtn.dataset.onChooseGoal;
-        onbBuildGoalsStep();
+      const topicBtn = e.target.closest("[data-on-choose-topic]");
+      if (topicBtn) {
+        onbState.topicId = topicBtn.dataset.onChooseTopic;
+        onbBuildTopicStep();
         return;
       }
       if (e.target.closest("[data-onb-back]")) {
         const step = $(".onb-step--active")?.getAttribute("data-onb-step");
-        if (step === "grade") {
+        if (step === "identity") {
           onbGoStep("welcome");
+        } else if (step === "grade") {
+          onbGoStep("identity");
         } else if (step === "subjects") {
           onbGoStep("grade");
           onbBuildGradeStep();
-        } else if (step === "goal") {
+        } else if (step === "textbook") {
           onbGoStep("subjects");
           onbBuildSubjectsStep();
+        } else if (step === "topic") {
+          onbGoStep("textbook");
+          onbBuildTextbooksStep();
         }
       }
     });
@@ -360,7 +709,7 @@
     el.setAttribute("aria-hidden", "false");
     if (kind === "add-subjects") renderAddSubjectsSheet();
     if (kind === "grade") renderGradeSheet();
-    if (kind === "goal") renderGoalSheet();
+    if (kind === "textbook") renderTextbookSheet();
     if (kind === "topic-search") {
       $("#btn-sd-search")?.classList.add("is-active");
       setTimeout(() => $("#sd-search-input")?.focus(), 100);
@@ -433,17 +782,17 @@
     });
   }
 
-  function renderGoalSheet() {
-    const grid = $("#sheet-goal-buttons");
+  function renderTextbookSheet() {
+    const grid = $("#sheet-textbook-buttons");
     if (!grid) return;
     grid.innerHTML = "";
-    (D.onboardingGoals || []).forEach((g) => {
+    getTextbooks(state.grade).forEach((book, index) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className =
-        "onb-goal-card" + (g.id === prefs.studyGoal ? " onb-goal-card--on" : "");
-      b.dataset.pickGoalSheet = g.id;
-      b.innerHTML = `<strong>${g.title}</strong><span>${g.sub}</span>`;
+        "onb-goal-card textbook-card" + (book.id === prefs.textbookId ? " onb-goal-card--on" : "");
+      b.dataset.pickTextbookSheet = book.id;
+      b.innerHTML = textbookCardMarkup(book, state.grade, index);
       grid.appendChild(b);
     });
   }
@@ -467,7 +816,7 @@
   }
 
   function getCatalog(grade) {
-    return D.catalogByGrade?.[grade] || [];
+    return (D.catalogByGrade?.[grade] || []).filter((row) => routeSubjectKey(row.id) === "math");
   }
 
   function routeSubjectKey(id) {
@@ -480,7 +829,9 @@
     g = Number(g);
     if (!Number.isFinite(g)) g = Number(D.defaultGrade) || 5;
     const byGrade = D.subjectDetailByGrade?.[g]?.[key];
-    if (byGrade) return byGrade;
+    if (byGrade) {
+      return key === "math" ? applyTextbookTrajectory(byGrade, g, prefs.textbookId) : byGrade;
+    }
     return D.subjectDetail?.[key] || D.subjectDetail?.math;
   }
 
@@ -505,7 +856,7 @@
     if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
       D.subjectDetailByGrade = {};
     }
-    [5, 6, 7, 8, 9].forEach((g) => {
+    (D.grades || [5, 6, 7, 8, 9, 10, 11]).forEach((g) => {
       const data = E[g] ?? E[String(g)];
       if (!data || !mathTopicsLookModular(data.topics)) return;
       if (!D.subjectDetailByGrade[g]) D.subjectDetailByGrade[g] = {};
@@ -519,7 +870,7 @@
   /** Если для класса нет модульной математики — снова заливаем из embed (после сбоя fetch и т. п.). */
   function ensureMathCurriculumForGrade(grade) {
     const g = Number(grade);
-    if (!Number.isFinite(g) || g < 5 || g > 9) return;
+    if (!Number.isFinite(g) || g < 5 || g > 11) return;
     const cur = D.subjectDetailByGrade[g]?.math;
     if (mathTopicsLookModular(cur?.topics)) return;
     backfillMathFromEmbedForGaps();
@@ -532,7 +883,7 @@
     if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
       D.subjectDetailByGrade = {};
     }
-    [5, 6, 7, 8, 9].forEach((g) => {
+    (D.grades || [5, 6, 7, 8, 9, 10, 11]).forEach((g) => {
       if (mathTopicsLookModular(D.subjectDetailByGrade[g]?.math?.topics)) return;
       const data = E[g] ?? E[String(g)];
       if (!data || !mathTopicsLookModular(data.topics)) return;
@@ -562,7 +913,22 @@
   function getLearningContent(topic) {
     if (!isCurriculumTopic(topic)) return null;
     const m = window.SHANKS_MATH_LEARNING?.byTopicId?.[topic.id];
-    return m && typeof m === "object" ? m : null;
+    if (m && typeof m === "object") return m;
+    const packet = window.SHANKS_MATH_CONTENT_DATA?.contentByTopicId?.[topic.id];
+    if (!packet || typeof packet !== "object") return null;
+    return {
+      ...packet,
+      schemaVersion: 2,
+      generated: true,
+      contentOrigin: "ai",
+      theory: Array.isArray(packet.theory)
+        ? packet.theory.map((block) => ({ ...block, id: block.id || block.stepId }))
+        : [],
+      practicePassRule: {
+        required: Math.max(1, Math.min(1, Array.isArray(packet.practice) ? packet.practice.length : 1)),
+        total: Math.max(1, Array.isArray(packet.practice) ? packet.practice.length : 1),
+      },
+    };
   }
 
   function usesStructuredTheory(lc) {
@@ -1091,6 +1457,91 @@
     return `${subjectKey || state.subjectKey}:${grade || state.grade}:${topic.id}`;
   }
 
+  function stepIdAtCursor(lc, cursor) {
+    if (!lc || !Array.isArray(lc.lessonDialog)) return null;
+    if (cursor == null || !Number.isFinite(Number(cursor))) return null;
+    const step = lc.lessonDialog[Math.max(0, Number(cursor))];
+    return step?.id ? String(step.id) : null;
+  }
+
+  function cursorForStableStep(lc, stepId) {
+    if (!stepId || !Array.isArray(lc?.lessonDialog)) return null;
+    const index = lc.lessonDialog.findIndex((step) => String(step?.id || "") === String(stepId));
+    return index >= 0 ? index : null;
+  }
+
+  function structuredTheoryIndexForStableStep(lc, stepId) {
+    if (!stepId || !usesStructuredTheory(lc)) return null;
+    return theoryReaderSeqIndexForBlock(lc, stepId);
+  }
+
+  function currentTheoryStepId(lc) {
+    const dialogId = stepIdAtCursor(lc, state.lessonDialogCursor);
+    if (dialogId) return dialogId;
+    if (!usesStructuredTheory(lc) || state.theoryNavSeq == null) return null;
+    const item = getTheoryReaderSequence(lc)[state.theoryNavSeq];
+    if (!item || item.kind !== "theory") return null;
+    return lc.theory?.[item.index]?.id || null;
+  }
+
+  function saveLessonPosition(mode) {
+    const topic = state.curriculumTopic;
+    if (!isCurriculumTopic(topic)) return;
+    const lc = getLearningContent(topic);
+    const activeMode = mode || state.activityView || state.topicMode || "theory";
+    prefs.lessonPosition = {
+      subjectKey: state.subjectKey,
+      grade: state.grade,
+      topicId: topic.id,
+      mode: activeMode,
+      difficulty:
+        activeMode === "test" ? state.testDiff : activeMode === "practice" ? state.practiceDiff : null,
+      stepId: activeMode === "theory" ? currentTheoryStepId(lc) : null,
+      updatedAt: new Date().toISOString(),
+    };
+    prefs.currentTopicId = topic.id;
+    prefs.trajectoryVersion = prefs.trajectoryVersion || "1";
+    savePrefs();
+    const cloud = window.SHANKS_CLOUD;
+    if (
+      currentAuthUser &&
+      cloudReadyUserId === String(currentAuthUser.id || "") &&
+      typeof cloud?.saveLessonPosition === "function"
+    ) {
+      const input = {
+        subjectId: state.subjectKey,
+        grade: state.grade,
+        topicId: topic.id,
+        lessonId: activeMode,
+        position: { ...prefs.lessonPosition },
+      };
+      cloudLessonSyncQueue = cloudLessonSyncQueue
+        .catch(() => {})
+        .then(() => cloud.saveLessonPosition(input));
+    }
+  }
+
+  function findMathTopicById(grade, topicId) {
+    return flattenMathTopics(grade).find((topic) => String(topic.id) === String(topicId)) || null;
+  }
+
+  function isGeneratedLearningContent(lc) {
+    return !!(
+      lc &&
+      (lc.generated === true ||
+        lc.aiGenerated === true ||
+        lc.source === "generated" ||
+        lc.sourceType === "generated" ||
+        lc.contentOrigin === "ai")
+    );
+  }
+
+  function syncGeneratedContentNotice(lc) {
+    const generated = isGeneratedLearningContent(lc);
+    $("#topic-ai-note")?.toggleAttribute("hidden", !generated);
+    $("#activity-ai-note")?.toggleAttribute("hidden", !generated);
+  }
+
   function getTopicProgress(topic, grade, subjectKey) {
     ensureTopicProgressStore();
     return prefs.topicProgress[topicProgressKey(topic, grade, subjectKey)] || {};
@@ -1099,7 +1550,7 @@
   function topicProgressPct(topic, grade, subjectKey) {
     if (!isCurriculumTopic(topic)) return clampPct(topic?.pct);
     const progress = getTopicProgress(topic, grade, subjectKey);
-    const lc = window.SHANKS_MATH_LEARNING?.byTopicId?.[topic.id] ?? null;
+    const lc = getLearningContent(topic);
     return Progress.topicPct ? Progress.topicPct(progress, lc) : 0;
   }
 
@@ -1207,7 +1658,6 @@
   function subjectProgressPct(row, grade) {
     if (!row) return 0;
     if (routeSubjectKey(row.id) !== "math") return clampPct(row.pct);
-    if (Number(grade) > 9) return 0;
     const sd = getSubjectDetail("math", grade);
     const items = [];
     (sd?.topics || []).forEach((block) => {
@@ -1316,7 +1766,7 @@
     return m[diff] || m.easy || {};
   }
 
-  function openActivity(view, diff) {
+  function openActivity(view, diff, options) {
     const ct = state.curriculumTopic;
     if (isCurriculumTopic(ct) && getLearningContent(ct)) {
       if (view === "theory") state.topicMode = "theory";
@@ -1368,6 +1818,7 @@
     $("#stack-topic").classList.add("is-open");
     $("#stack-activity").classList.add("is-open");
     renderActivity();
+    if (!options?.skipPositionSave && isCurriculumTopic(state.curriculumTopic)) saveLessonPosition(view);
     iconsRefresh();
   }
 
@@ -2496,6 +2947,7 @@
     let view = state.activityView;
     const learningTopic = isCurriculumTopic(state.curriculumTopic);
     const lcLearn = learningTopic ? getLearningContent(state.curriculumTopic) : null;
+    syncGeneratedContentNotice(lcLearn);
     const progLearn = learningTopic ? getTopicProgress(state.curriculumTopic) : null;
     if (learningTopic && view === "test" && lcLearn && !Progress.isTestUnlocked(progLearn, lcLearn)) {
       state.activityView = "practice";
@@ -2505,7 +2957,6 @@
       view === "practice" ? state.practiceDiff : view === "test" ? state.testDiff : state.practiceDiff;
     root.dataset.view = view;
     root.dataset.diff = diff;
-
     const tTitle = $("#tp-title");
     const tMeta = $("#tp-meta");
     const titleEl = $("#act-title");
@@ -3043,9 +3494,147 @@
     });
   }
 
+  function continuationTarget() {
+    const saved = prefs.lessonPosition;
+    if (saved && Number(saved.grade) === Number(state.grade) && saved.topicId) {
+      const topic = findMathTopicById(state.grade, saved.topicId);
+      if (topic) return { topic, position: saved };
+    }
+    const topic = flattenMathTopics(state.grade).find((item) => !!getLearningContent(item)) || flattenMathTopics(state.grade)[0];
+    return topic
+      ? { topic, position: { subjectKey: "math", grade: state.grade, topicId: topic.id, mode: "theory", stepId: null } }
+      : null;
+  }
+
+  function renderContinueCard() {
+    const target = continuationTarget();
+    const card = $("#home-continue-card");
+    if (!card) return;
+    card.toggleAttribute("hidden", !target);
+    if (!target) return;
+    const lc = getLearningContent(target.topic);
+    const mode = target.position.mode || "theory";
+    const modeLabel = { theory: "теория", practice: "практика", test: "тест" }[mode] || "теория";
+    const stepIndex =
+      cursorForStableStep(lc, target.position.stepId) ??
+      structuredTheoryIndexForStableStep(lc, target.position.stepId);
+    const title = $("#home-continue-title");
+    const meta = $("#home-continue-meta");
+    const cta = $("#home-continue-cta");
+    if (title) title.textContent = target.topic.title;
+    if (meta) meta.textContent = `${state.grade} класс · ${modeLabel}${stepIndex != null ? ` · шаг ${stepIndex + 1}` : ""}`;
+    if (cta) cta.textContent = prefs.lessonPosition ? "Продолжить" : "Начать тему";
+  }
+
+  function openContinuation() {
+    const target = continuationTarget();
+    if (!target) return toast("Программа для этого класса готовится.");
+    state.subjectKey = "math";
+    renderSubjectDetail();
+    setTab("subjects");
+    openStack("subject-detail");
+    renderTopic(target.topic, getSubjectDetail("math", state.grade));
+    openTopicOverDetail();
+    const mode = target.position.mode || "theory";
+    const lc = getLearningContent(target.topic);
+    if (!lc) return;
+    const diff = target.position.difficulty || (mode === "test" ? "easy" : "med");
+    openActivity(mode, diff, { skipPositionSave: true });
+    if (mode === "theory" && target.position.stepId) {
+      const cursor = cursorForStableStep(lc, target.position.stepId);
+      if (cursor != null) {
+        state.lessonDialogCursor = cursor;
+        state.theoryPanel = "dialog";
+        renderActivity();
+      } else {
+        const theoryIndex = structuredTheoryIndexForStableStep(lc, target.position.stepId);
+        if (theoryIndex != null) {
+          state.theoryNavSeq = theoryIndex;
+          state.theoryPanel = "reader";
+          renderActivity();
+        }
+      }
+    }
+  }
+
+  function renderSubjectVote() {
+    const wrap = $("#subject-vote-options");
+    const status = $("#subject-vote-status");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    (D.subjectVoteOptions || []).forEach((option) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "subject-vote-btn" + (prefs.subjectVote === option.id ? " subject-vote-btn--on" : "");
+      button.dataset.subjectVote = option.id;
+      button.innerHTML = `<i data-lucide="${option.icon || "book-open"}"></i><span>${option.title}</span>`;
+      wrap.appendChild(button);
+    });
+    if (status) status.textContent = prefs.subjectVote ? "Голос сохранён. Спасибо!" : "Можно выбрать один вариант.";
+  }
+
+  async function submitSubjectVote(optionId) {
+    const previous = prefs.subjectVote || null;
+    prefs.subjectVote = optionId;
+    prefs.subjectVoteUpdatedAt = new Date().toISOString();
+    savePrefs();
+    renderSubjectVote();
+    iconsRefresh();
+    const cloud = window.SHANKS_CLOUD;
+    try {
+      let result = null;
+      if (typeof cloud?.voteForSubject === "function") result = await cloud.voteForSubject(optionId);
+      else if (typeof cloud?.voteNextSubject === "function") result = await cloud.voteNextSubject(optionId, { previous, grade: state.grade });
+      else if (typeof cloud?.submitSubjectVote === "function") result = await cloud.submitSubjectVote({ subjectId: optionId, grade: state.grade });
+      else if (typeof cloud?.vote === "function") result = await cloud.vote("next-subject", optionId);
+      toast(result?.ok ? "Голос отправлен" : "Голос сохранён локально и отправится после входа");
+    } catch (error) {
+      toast("Голос сохранён локально и отправится позже");
+    }
+  }
+
+  async function reportGeneratedContent() {
+    const topic = state.curriculumTopic;
+    const payload = {
+      topicId: topic?.id || null,
+      grade: state.grade,
+      subjectKey: state.subjectKey,
+      mode: state.activityView || state.topicMode,
+      textbookId: prefs.textbookId || null,
+      createdAt: new Date().toISOString(),
+    };
+    const cloud = window.SHANKS_CLOUD;
+    try {
+      if (typeof cloud?.reportGeneratedContent === "function") {
+        const result = await cloud.reportGeneratedContent(payload);
+        if (result?.ok) {
+          toast("Спасибо! Отчёт отправлен редакторам.");
+          return;
+        }
+      }
+      if (typeof cloud?.trackEvent === "function" && currentAuthUser) {
+        const result = await cloud.trackEvent("content.reported", payload);
+        if (result?.ok) {
+          toast("Спасибо! Отчёт отправлен редакторам.");
+          return;
+        }
+      }
+      const reports = Array.isArray(prefs.generatedContentReports) ? prefs.generatedContentReports : [];
+      prefs.generatedContentReports = [...reports.slice(-19), payload];
+      savePrefs();
+      toast("Отчёт сохранён и отправится при подключении облака.");
+    } catch (error) {
+      const reports = Array.isArray(prefs.generatedContentReports) ? prefs.generatedContentReports : [];
+      prefs.generatedContentReports = [...reports.slice(-19), payload];
+      savePrefs();
+      toast("Отчёт сохранён и отправится при восстановлении связи.");
+    }
+  }
+
   function renderHome() {
     const h = D.home;
     if (!h) return;
+    renderContinueCard();
     const { pct, n } = computeOverallAverage(state.grade);
     $("#home-big-pct").textContent = `${pct}%`;
     const cap = $("#home-progress-caption");
@@ -3080,11 +3669,8 @@
         row.dataset.subjectId = r.id;
         const effectivePct = subjectProgressPct(r, state.grade);
         const muted = !effectivePct;
-        const isMathSoon = routeSubjectKey(r.id) === "math" && Number(state.grade) > 9;
         const mathKpi = routeSubjectKey(r.id) === "math" && getMathKpiIdSet(state.grade);
-        const progressLabel = isMathSoon
-          ? "программа скоро"
-          : routeSubjectKey(r.id) === "math"
+        const progressLabel = routeSubjectKey(r.id) === "math"
             ? mathKpi
               ? "интерактивные темы"
               : "личный прогресс"
@@ -3108,6 +3694,7 @@
   function renderSubjects() {
     const k = $("#sub-grade-kicker");
     if (k) k.textContent = `${state.grade} класс`;
+    renderSubjectVote();
 
     const catalog = getCatalog(state.grade);
     const favIds = getFavoritesForGrade(state.grade);
@@ -3168,8 +3755,11 @@
     card.type = "button";
     card.className = "topic-card" + (nested ? " topic-card--nested" : "");
     const hasPack = !!getLearningContent(t);
+    const learningContent = getLearningContent(t);
     const badge = hasPack
-      ? `<span class="topic-card-badge topic-card-badge--live">Интерактив</span>`
+      ? isGeneratedLearningContent(learningContent)
+        ? `<span class="topic-card-badge topic-card-badge--ai">AI · beta</span>`
+        : `<span class="topic-card-badge topic-card-badge--live">Интерактив</span>`
       : `<span class="topic-card-badge topic-card-badge--soon" title="Теория и задания готовятся">Скоро</span>`;
     card.innerHTML = `
         <div class="row-between">
@@ -3211,14 +3801,6 @@
 
     const tl = $("#sd-topics");
     tl.innerHTML = "";
-    if (state.subjectKey === "math" && Number(state.grade) > 9) {
-      const p = document.createElement("p");
-      p.className = "topic-empty-note";
-      p.textContent =
-        "Полная программа математики для 10-11 классов готовится. Сейчас доступны реальные темы 5-9 классов.";
-      tl.appendChild(p);
-      return;
-    }
     sd.topics.forEach((block, blockIndex) => {
       if (block.items && Array.isArray(block.items)) {
         const accId = topicAccordionKey(blockIndex);
@@ -3301,9 +3883,7 @@
   }
 
   function goalHintText() {
-    const goal = (D.onboardingGoals || []).find((g) => g.id === prefs.studyGoal);
-    if (!goal) return "Цель не выбрана: можешь задать её в профиле.";
-    return `Цель: ${goal.title.toLowerCase()}. Держи короткий цикл без перегруза.`;
+    return "Продолжай с текущего шага: теория → практика → тест.";
   }
 
   function appendTheoryItems(list, T) {
@@ -3471,6 +4051,7 @@
     $("#tp-bar").style.width = `${barPct}%`;
     state.topicMode = "theory";
     refreshTopicTestLock();
+    syncGeneratedContentNotice(getLearningContent(state.curriculumTopic));
     updateTopicModeDescriptors();
     syncModeTiles();
     syncTopicBody();
@@ -3479,7 +4060,7 @@
   function renderNotes() {
     const grid = $("#notes-grid");
     grid.innerHTML = "";
-    (D.notes?.bubbles || []).forEach((b) => {
+    (D.notes?.bubbles || []).filter((b) => b.subject === "Математика").forEach((b) => {
       const tile = document.createElement("button");
       tile.type = "button";
       tile.className = "bubble";
@@ -3510,6 +4091,11 @@
         e.preventDefault();
         setTab(t);
       }
+      return;
+    }
+
+    if (e.target.closest("#btn-home-continue")) {
+      openContinuation();
       return;
     }
 
@@ -3585,8 +4171,34 @@
       return;
     }
 
-    if (e.target.closest("#btn-profile-goal")) {
-      openSheet("goal");
+    if (e.target.closest("#btn-profile-textbook")) {
+      openSheet("textbook");
+      return;
+    }
+
+    if (e.target.closest("#btn-auth-action")) {
+      runAuthAction("signin");
+      return;
+    }
+
+    if (e.target.closest("#btn-auth-signup")) {
+      runAuthAction("signup");
+      return;
+    }
+
+    if (e.target.closest("#btn-auth-signout")) {
+      runAuthAction("signout");
+      return;
+    }
+
+    const vote = e.target.closest("[data-subject-vote]");
+    if (vote) {
+      submitSubjectVote(vote.dataset.subjectVote);
+      return;
+    }
+
+    if (e.target.closest("[data-report-generated]")) {
+      reportGeneratedContent();
       return;
     }
 
@@ -3603,14 +4215,15 @@
       return;
     }
 
-    const pickGoal = e.target.closest("[data-pick-goal-sheet]");
-    if (pickGoal && $("#sheet-goal")?.contains(pickGoal)) {
-      prefs.studyGoal = pickGoal.getAttribute("data-pick-goal-sheet") || null;
+    const pickTextbook = e.target.closest("[data-pick-textbook-sheet]");
+    if (pickTextbook && $("#sheet-textbook")?.contains(pickTextbook)) {
+      prefs.textbookId = pickTextbook.getAttribute("data-pick-textbook-sheet") || null;
+      prefs.trajectoryVersion = trajectoryFor(prefs.textbookId)?.version || "1";
       savePrefs();
       renderHome();
       renderProfile();
-      closeSheet("goal");
-      toast("Цель обновлена");
+      closeSheet("textbook");
+      toast("Учебник обновлён · прогресс сохранён");
       return;
     }
 
@@ -3889,6 +4502,10 @@
 
   function bind() {
     $("#app").addEventListener("click", onAppClick);
+    $("#auth-form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runAuthAction("signin");
+    });
 
     $("#sd-search-input")?.addEventListener("input", (ev) => filterTopics(ev.target.value));
     $("#sd-search-clear")?.addEventListener("click", (ev) => {
@@ -3921,7 +4538,7 @@
   function loadMathCurriculumIntoD() {
     applyEmbeddedMathCurriculum();
     const ver = encodeURIComponent(D.curriculumMathVersion || "1");
-    const grades = [5, 6, 7, 8, 9];
+    const grades = (D.grades || [5, 6, 7, 8, 9, 10, 11]).filter((grade) => grade >= 5 && grade <= 11);
     if (!D.subjectDetailByGrade || typeof D.subjectDetailByGrade !== "object") {
       D.subjectDetailByGrade = {};
     }
@@ -3993,7 +4610,8 @@
     initPrefs();
     loadMathCurriculumIntoD()
       .catch((error) => console.warn("Не удалось подготовить curriculum", error))
-      .finally(() => {
+      .finally(async () => {
+        await bindAuthHook().catch(() => {});
         $("#loading")?.classList.add("is-hidden");
         exposeQaPilotTools();
 

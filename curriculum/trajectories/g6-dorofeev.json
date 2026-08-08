@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "id": "g6-dorofeev-trajectory",
+  "catalogId": "g6-dorofeev",
+  "subject": "math",
+  "grade": 6,
+  "version": "1.0.0-beta.1",
+  "status": "beta",
+  "mappingMethod": "canonical-order-beta",
+  "mapping": [
+    {
+      "sourcePosition": 1,
+      "canonicalTopicId": "g6-n01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 2,
+      "canonicalTopicId": "g6-n02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 3,
+      "canonicalTopicId": "g6-n03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 4,
+      "canonicalTopicId": "g6-n04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 5,
+      "canonicalTopicId": "g6-n05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 6,
+      "canonicalTopicId": "g6-n06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 7,
+      "canonicalTopicId": "g6-n07",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 8,
+      "canonicalTopicId": "g6-n08",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 9,
+      "canonicalTopicId": "g6-n09",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 10,
+      "canonicalTopicId": "g6-g01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 11,
+      "canonicalTopicId": "g6-g02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 12,
+      "canonicalTopicId": "g6-g03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 13,
+      "canonicalTopicId": "g6-d01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 14,
+      "canonicalTopicId": "g6-d02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 15,
+      "canonicalTopicId": "g6-d03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 16,
+      "canonicalTopicId": "g6-d04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 17,
+      "canonicalTopicId": "g6-d05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 18,
+      "canonicalTopicId": "g6-d06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 19,
+      "canonicalTopicId": "g6-d07",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 20,
+      "canonicalTopicId": "g6-d08",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 21,
+      "canonicalTopicId": "g6-d09",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 22,
+      "canonicalTopicId": "g6-g04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 23,
+      "canonicalTopicId": "g6-g05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 24,
+      "canonicalTopicId": "g6-a01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 25,
+      "canonicalTopicId": "g6-a02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 26,
+      "canonicalTopicId": "g6-a03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 27,
+      "canonicalTopicId": "g6-a04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 28,
+      "canonicalTopicId": "g6-a05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 29,
+      "canonicalTopicId": "g6-g06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 30,
+      "canonicalTopicId": "g6-g07",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 31,
+      "canonicalTopicId": "g6-g08",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 32,
+      "canonicalTopicId": "g6-g09",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 33,
+      "canonicalTopicId": "g6-g10",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 34,
+      "canonicalTopicId": "g6-g11",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 35,
+      "canonicalTopicId": "g6-r01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 36,
+      "canonicalTopicId": "g6-r02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 37,
+      "canonicalTopicId": "g6-r03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 38,
+      "canonicalTopicId": "g6-r04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 39,
+      "canonicalTopicId": "g6-r05",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 40,
+      "canonicalTopicId": "g6-r06",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 41,
+      "canonicalTopicId": "g6-w01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 42,
+      "canonicalTopicId": "g6-w02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 43,
+      "canonicalTopicId": "g6-w03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 44,
+      "canonicalTopicId": "g6-w04",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 45,
+      "canonicalTopicId": "g6-k01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 46,
+      "canonicalTopicId": "g6-k02",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 47,
+      "canonicalTopicId": "g6-k03",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 48,
+      "canonicalTopicId": "g6-g12",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 49,
+      "canonicalTopicId": "g6-g13",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 50,
+      "canonicalTopicId": "g6-g14",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 51,
+      "canonicalTopicId": "g6-g15",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 52,
+      "canonicalTopicId": "g6-g16",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 53,
+      "canonicalTopicId": "g6-z01",
+      "confidence": "editorial-beta"
+    },
+    {
+      "sourcePosition": 54,
+      "canonicalTopicId": "g6-z02",
+      "confidence": "editorial-beta"
+    }
+  ]
+}

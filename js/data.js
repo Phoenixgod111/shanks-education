@@ -132,13 +132,14 @@
     grades: G,
     defaultGrade: 5,
     storageKey: "shanks_prefs_v2",
+    prefsSchemaVersion: 3,
     catalogByGrade,
     seedFavoritesByGrade,
     subjectDetailByGrade,
     /** Allowlist интерактивных тем (KPI); подставляется из curriculum/math/learning-slice-ids.json в app.js */
     mathLearningKpiByGrade: {},
     /** Увеличивай при правках curriculum/math/*.json, чтобы сбросить кэш fetch */
-    curriculumMathVersion: "20260511",
+    curriculumMathVersion: "20260809",
     home: {
       taskDay: {
         title: "Реши 5 задач по алгебре и получи +50 XP",
@@ -149,6 +150,22 @@
         cta: "Открыть QUIZ",
       },
     },
+    textbookFallbackByGrade: Object.fromEntries(
+      G.map((grade) => [
+        grade,
+        [
+          { id: `beta-${grade}-a`, title: `Учебник ${grade} класса · вариант A`, beta: true },
+          { id: `beta-${grade}-b`, title: `Учебник ${grade} класса · вариант B`, beta: true },
+          { id: `beta-${grade}-c`, title: `Учебник ${grade} класса · вариант C`, beta: true },
+          { id: "universal", title: "Универсальная программа", universal: true },
+        ],
+      ])
+    ),
+    subjectVoteOptions: [
+      { id: "physics", title: "Физика", icon: "atom" },
+      { id: "russian", title: "Русский язык", icon: "book-text" },
+      { id: "informatics", title: "Информатика", icon: "monitor" },
+    ],
     subjectRoute: {
       math: "math",
       lit: "lit",

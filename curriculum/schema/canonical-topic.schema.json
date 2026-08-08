@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shanks.local/schema/canonical-topic.schema.json",
+  "title": "Shanks canonical mathematics topic registry",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "version",
+    "status",
+    "topics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "beta",
+        "stable",
+        "deprecated"
+      ]
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date"
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "subject",
+          "grade",
+          "unitId",
+          "unitTitle",
+          "order",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^g(?:[5-9]|10|11)-[a-z][a-z0-9]*[0-9]{2}$"
+          },
+          "subject": {
+            "const": "math"
+          },
+          "grade": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 11
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitTitle": {
+            "type": "string",
+            "minLength": 1
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "beta",
+              "stable",
+              "deprecated"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -5,14 +5,26 @@
   "type": "module",
   "scripts": {
     "generate:math-embed": "node scripts/generate-math-embed.mjs",
-    "validate:data": "node scripts/validate-curriculum.mjs",
+    "generate:content-data": "node scripts/generate-content-data.mjs",
+    "generate:content-embed": "node scripts/generate-content-embed.mjs",
+    "generate:data": "npm run generate:content-data && npm run generate:math-embed && npm run generate:content-embed",
+    "validate:curriculum": "node scripts/validate-curriculum.mjs",
+    "validate:trajectories": "node scripts/validate-trajectories.mjs",
+    "validate:content": "node scripts/validate-content-packets.mjs",
+    "validate:rights": "node scripts/validate-rights.mjs",
+    "validate:data": "npm run validate:curriculum && npm run validate:trajectories && npm run validate:content && npm run validate:rights",
     "validate:learning": "node scripts/validate-learning-content.mjs",
     "smoke": "node scripts/smoke-check.mjs",
-    "lint": "node --check js/data.js && node --check js/math-learning-content.js && node --check js/math-learning-kpi.js && node --check js/progress.js && node --check js/app.js && node --check scripts/validate-curriculum.mjs && node --check scripts/validate-learning-content.mjs && node --check scripts/generate-math-embed.mjs && node --check scripts/dev-static-server.mjs && node --check scripts/smoke-check.mjs && node --check scripts/test-progress.mjs && node --check scripts/test-math-kpi.mjs && node --check scripts/qa-pilot-invariants.mjs",
+    "lint": "node --check js/config.js && node --check js/cloud-sync.js && node --check js/auth.js && node --check js/data.js && node --check js/math-content-data-embed.js && node --check js/math-learning-content.js && node --check js/math-learning-kpi.js && node --check js/progress.js && node --check js/app.js && node --check scripts/validate-curriculum.mjs && node --check scripts/validate-trajectories.mjs && node --check scripts/validate-content-packets.mjs && node --check scripts/validate-rights.mjs && node --check scripts/validate-learning-content.mjs && node --check scripts/generate-content-data.mjs && node --check scripts/generate-content-embed.mjs && node --check scripts/generate-math-embed.mjs && node --check scripts/dev-static-server.mjs && node --check scripts/smoke-check.mjs && node --check scripts/e2e-smoke.mjs && node --check scripts/test-cloud-sync.mjs && node --check scripts/test-progress.mjs && node --check scripts/test-math-kpi.mjs && node --check scripts/qa-pilot-invariants.mjs",
+    "test:cloud": "node scripts/test-cloud-sync.mjs",
     "test:progress": "node scripts/test-progress.mjs",
     "test:kpi": "node scripts/test-math-kpi.mjs",
+    "test:e2e": "node scripts/e2e-smoke.mjs",
     "qa:pilot": "node scripts/qa-pilot-invariants.mjs",
     "serve": "node scripts/dev-static-server.mjs",
-    "check": "npm run validate:data && npm run validate:learning && npm run generate:math-embed && npm run lint && npm run test:progress && npm run test:kpi && npm run qa:pilot && npm run smoke"
+    "check": "npm run generate:data && npm run validate:data && npm run validate:learning && npm run lint && npm run test:cloud && npm run test:progress && npm run test:kpi && npm run qa:pilot && npm run smoke"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
   }
 }

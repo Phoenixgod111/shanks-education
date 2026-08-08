@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0-beta.1",
+  "status": "beta",
+  "subject": "math",
+  "grades": {
+    "5": "content/math/5/packets.json",
+    "6": "content/math/6/packets.json",
+    "7": "content/math/7/packets.json",
+    "8": "content/math/8/packets.json",
+    "9": "content/math/9/packets.json",
+    "10": "content/math/10/packets.json",
+    "11": "content/math/11/packets.json"
+  },
+  "legacyRichContent": {
+    "topicIds": [
+      "g8-u01",
+      "g8-u02",
+      "g8-u03",
+      "g8-u04",
+      "g8-u05",
+      "g8-u06"
+    ],
+    "source": "js/math-learning-content.js",
+    "precedence": "legacy-over-generated-fallback"
+  }
+}

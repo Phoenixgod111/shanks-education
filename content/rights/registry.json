@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0-beta.1",
+  "status": "beta",
+  "entries": [
+    {
+      "id": "shanks-original",
+      "assetKinds": [
+        "canonical-curriculum",
+        "universal-trajectory"
+      ],
+      "owner": "Shanks project",
+      "usage": "project-authored",
+      "redistribution": "project-policy",
+      "status": "beta"
+    },
+    {
+      "id": "shanks-ai-beta",
+      "assetKinds": [
+        "theory",
+        "practice",
+        "test"
+      ],
+      "owner": "Shanks project",
+      "usage": "AI-assisted deterministic draft; human review required before stable release",
+      "redistribution": "project-policy",
+      "status": "beta"
+    },
+    {
+      "id": "bibliographic-metadata",
+      "assetKinds": [
+        "title",
+        "author-names",
+        "publisher-name"
+      ],
+      "owner": "respective publishers and authors",
+      "usage": "bibliographic identification and trajectory label only; no textbook text, tasks, ISBN or page mapping copied",
+      "redistribution": "metadata-only",
+      "status": "beta"
+    }
+  ]
+}
